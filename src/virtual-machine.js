@@ -163,6 +163,8 @@ class VirtualMachine extends EventEmitter {
         this.flyoutBlockListener = this.flyoutBlockListener.bind(this);
         this.monitorBlockListener = this.monitorBlockListener.bind(this);
         this.variableListener = this.variableListener.bind(this);
+
+        this.addDataFile = this.addDataFile.bind(this);
     }
 
     /**
@@ -1539,6 +1541,15 @@ class VirtualMachine extends EventEmitter {
      */
     configureScratchLinkSocketFactory (factory) {
         this.runtime.configureScratchLinkSocketFactory(factory);
+    }
+
+    /**
+     * Allow VM to receive data files uploaded to the GUI
+     * @param {string} name The name of the file
+     * @param {Array} data The parsed file data
+     */
+    addDataFile(name, data) {
+        this.runtime.addDataFile(name, data);
     }
 }
 

@@ -14,14 +14,13 @@ class DataTools {
         return 'datatools';
     }
 
-
-    constructor(){
-        /* 
-        * The runtime instantiating this block package.
-        * @type {Runtime}
-        */
-       //this.runtime = runtime;
-        //idk what we will need yet but here is the constructor
+    /* 
+    * The runtime instantiating this block package.
+    * @param {Runtime}
+    */
+    constructor(runtime){
+        this._runtime = runtime;
+        this._runtime.registerPeripheralExtension('datatools', this);
     }
 
     getInfo(){
@@ -58,7 +57,16 @@ class DataTools {
     getDataset(){
 
     }
+
+    addDataFile(name, fileData) {
+        console.log(name);
+        console.log(fileData);
+        alert("WE DID IT");
+    }
+
+
     uploadLocalFile(){
+        alert("hello");
         return "hello";
         //just putting this here for rn
     }
