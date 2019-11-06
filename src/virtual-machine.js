@@ -1551,6 +1551,16 @@ class VirtualMachine extends EventEmitter {
     addDataFile(name, data) {
         this.runtime.addDataFile(name, data);
     }
+
+    
+    /**
+     * Remove the specified file from the data tools extension
+     * @param {string} name The name of the file
+     * @returns {Boolean} Whether or not the file was removed correctly
+     */
+    removeDataFile(name) {
+        return this.runtime.removeDataFile(name);
+    }
 }
 
 module.exports = VirtualMachine;

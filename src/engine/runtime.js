@@ -2521,6 +2521,15 @@ class Runtime extends EventEmitter {
     addDataFile(name, data) {
         this.peripheralExtensions["datatools"].addDataFile(name, data);
     }
+
+    /**
+     * Remove the specified file from the data tools extension
+     * @param {string} name The name of the file
+     * @returns {Boolean} Whether or not the file was removed correctly
+     */
+    removeDataFile(name) {
+        return this.peripheralExtensions["datatools"].removeDataFile(name);
+    }
 }
 
 /**
