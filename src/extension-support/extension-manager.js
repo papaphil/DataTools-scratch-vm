@@ -340,7 +340,7 @@ class ExtensionManager {
      * @returns {Array} menu items ready for scratch-blocks.
      * @private
      */
-    _getExtensionMenuItems (extensionObject, menuItemFunctionName, extraArgs) {
+    _getExtensionMenuItems (extensionObject, menuItemFunctionName) {
         // Fetch the items appropriate for the target currently being edited. This assumes that menus only
         // collect items when opened by the user while editing a particular target.
         const editingTarget = this.runtime.getEditingTarget() || this.runtime.getTargetForStage();
@@ -350,7 +350,7 @@ class ExtensionManager {
         // TODO: Fix this to use dispatch.call when extensions are running in workers.
         const menuFunc = extensionObject[menuItemFunctionName];
 
-        let items = menuFunc.call(extensionObject, editingTargetID, extraArgs); 
+        let items = menuFunc.call(extensionObject, editingTargetID); 
         if(!Array.isArray(items)) {
             return items;   
         }    
