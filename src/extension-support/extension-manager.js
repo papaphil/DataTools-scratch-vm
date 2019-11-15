@@ -340,7 +340,7 @@ class ExtensionManager {
      * @returns {Array} menu items ready for scratch-blocks.
      * @private
      */
-    _getExtensionMenuItems (extensionObject, menuItemFunctionName) {
+    _getExtensionMenuItems (extensionObject, menuItemFunctionName, extraArgs) {
         // Fetch the items appropriate for the target currently being edited. This assumes that menus only
         // collect items when opened by the user while editing a particular target.
         const editingTarget = this.runtime.getEditingTarget() || this.runtime.getTargetForStage();
@@ -349,26 +349,33 @@ class ExtensionManager {
 
         // TODO: Fix this to use dispatch.call when extensions are running in workers.
         const menuFunc = extensionObject[menuItemFunctionName];
-        const menuItems = menuFunc.call(extensionObject, editingTargetID).map(
-            item => {
-                item = maybeFormatMessage(item, extensionMessageContext);
-                switch (typeof item) {
-                case 'object':
-                    return [
-                        maybeFormatMessage(item.text, extensionMessageContext),
-                        item.value
-                    ];
-                case 'string':
-                    return [item, item];
-                default:
-                    return item;
-                }
-            });
 
-        if (!menuItems || menuItems.length < 1) {
-            throw new Error(`Extension menu returned no items: ${menuItemFunctionName}`);
+        let items = menuFunc.call(extensionObject, editingTargetID, extraArgs); 
+        if(!Array.isArray(items)) {
+            return items;   
+        }    
+        else {
+            const menuItems = items.map(
+                item => {
+                    item = maybeFormatMessage(item, extensionMessageContext);
+                    switch (typeof item) {
+                    case 'object':
+                        return [
+                            maybeFormatMessage(item.text, extensionMessageContext),
+                            item.value
+                        ];
+                    case 'string':
+                        return [item, item];
+                    default:
+                        return item;
+                    }
+                });
+
+                if (!menuItems || menuItems.length < 1) {
+                    throw new Error(`Extension menu returned no items: ${menuItemFunctionName}`);
+                }
+                return menuItems;
         }
-        return menuItems;
     }
 
     /**
