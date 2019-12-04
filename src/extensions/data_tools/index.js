@@ -321,7 +321,13 @@ class DataTools {
     }
 
     getDataFileContents(name) {
-        return files[name];
+        return [...files[name]];
+    }
+
+    updateDataFileFromTable(fileName, row, colName, value) {
+        files[fileName][row][colName] = value;
+
+        return [...files[fileName]];
     }
 }
 

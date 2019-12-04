@@ -1569,6 +1569,10 @@ class VirtualMachine extends EventEmitter {
     getDataFileContents(name) {
         return this.runtime.getDataFileContents(name);
     }
+
+    updateDataFile(fileName, row, colName, value) {
+        return this.runtime.updateDataFile(fileName, row, colName, value);
+    }
 }
 
 module.exports = VirtualMachine;
