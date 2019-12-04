@@ -240,7 +240,7 @@ class DataTools {
         let fileName = colArr[0].substring(1);
         let col = colArr.slice(1, colArr.length).join(']').substring(1);
 
-        if(!files[fileName] || ROW < 1 || ROW > files[fileName].length){ //|| !files[fileName][ROW - 1][col]) {
+        if(!files[fileName] || ROW < 1 || ROW > files[fileName].length || !files[fileName][ROW - 1][col]) {
             return "";
         }
         console.log(files[fileName][ROW - 1][col]); 
