@@ -121,9 +121,6 @@ class DataTools {
                         }
                     }
                 },
-                {
-                    opcode: 'mapTwoColumns'
-                }
             ],
             menus: {
                 columnMenu: {
@@ -154,8 +151,15 @@ class DataTools {
         return data;
     }
 
+    /**
+     * duplicates an existing dataset either as the name given by the user or as the original name plus an incremented number
+     * args - holds ORIGINAl and NEW, ORIGINAl being the original data set to be duplicated, NEW being the name of the newly duplicated dataset
+     */
     duplicateDataset(args) {
         let {ORIGINAL, NEW} = args;
+        if(NEW === ""){
+            NEW = ORIGINAL;
+        }
         this.addDataFile(NEW, files[ORIGINAL]);
     }
 
