@@ -2556,6 +2556,10 @@ class Runtime extends EventEmitter {
     updateDataFile(fileName, row, colName, value) {
         return this.peripheralExtensions["datatools"].updateDataFileFromTable(fileName, row, colName, value);
     }
+
+    addDataFileRow(fileName) {
+        return this.peripheralExtensions["datatools"].addDataFileRow(fileName);
+    }
 }
 
 /**

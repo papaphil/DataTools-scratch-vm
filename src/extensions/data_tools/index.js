@@ -255,6 +255,22 @@ class DataTools {
         console.log(files[fileName][ROW - 1][col]);       
     }
 
+    addDataFileRow(args) {
+        let { FILENAME } = args;
+
+        let first = files[FILENAME][0];
+        let newRow = {};
+        Object.keys(first).map(key => {
+            if(typeof(first[key]) === 'number')
+                newRow[key] = 0;
+            else {
+                newRow[key] = '';
+            }
+        });
+
+        files[FILENAME].push(newRow);
+    }
+
     /**
      * Gets the row count of a given file
      * @param {*} args Object containing arguments, including FILENAME
