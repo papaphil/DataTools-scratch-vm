@@ -59,6 +59,21 @@ class DataTools {
                     }
                 },
                 {
+                    opcode: 'addRow',
+                    text: formatMessage({
+                        id: 'datatools.addRow',
+                        default: 'add row to [FILENAME]',
+                        description: 'add an empty row to a file'
+                    }),
+                    blocktype: BlockType.COMMAND,
+                    arguments: {
+                        FILENAME: {
+                            type: ArgumentType.STRING,
+                            menu: 'fileMenu',
+                        }
+                    }
+                },
+                {
                     opcode: 'getColumnAtRow',
                     text: formatMessage({
                         id: 'datatools.getColumnAtRow',
