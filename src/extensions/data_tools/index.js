@@ -59,9 +59,9 @@ class DataTools {
                     }
                 },
                 {
-                    opcode: 'addRow',
+                    opcode: 'addDataFileRow',
                     text: formatMessage({
-                        id: 'datatools.addRow',
+                        id: 'datatools.addDataFileRow',
                         default: 'add row to [FILENAME]',
                         description: 'add an empty row to a file'
                     }),
@@ -221,7 +221,7 @@ class DataTools {
         let fileName = colArr[0].substring(1);
         let col = colArr.slice(1, colArr.length).join(']').substring(1);
 
-        if(!files[fileName] || ROW < 1 || ROW > files[fileName].length || !files[fileName][ROW - 1][col]) {
+        if(!files[fileName] || ROW < 1 || ROW > files[fileName].length || files[fileName][ROW - 1][col] === 'undefined') {
             return "";
         }
 
@@ -255,7 +255,7 @@ class DataTools {
         let fileName = colArr[0].substring(1);
         let col = colArr.slice(1, colArr.length).join(']').substring(1);
 
-        if(!files[fileName] || ROW < 1 || ROW > files[fileName].length || !files[fileName][ROW - 1][col]) {
+        if(!files[fileName] || ROW < 1 || ROW > files[fileName].length || files[fileName][ROW - 1][col]  === 'undefined') {
             return "";
         }
         console.log(files[fileName][ROW - 1][col]); 
@@ -272,6 +272,9 @@ class DataTools {
 
     addDataFileRow(args) {
         let { FILENAME } = args;
+        if(!FILENAME || FILENAME === ''){
+            return;
+        }
 
         let first = files[FILENAME][0];
         let newRow = {};
