@@ -1292,22 +1292,22 @@ class Runtime extends EventEmitter {
             argJSON = this._constructInlineImageJson(argInfo);
         } else {
             // Construct input value
-            // Layout a block argument (e.g. an input slot on the block)
-            argJSON = {
-                type: 'input_value',
-                name: placeholder
-            };
+                    // Layout a block argument (e.g. an input slot on the block)
+                    argJSON = {
+                        type: 'input_value',
+                        name: placeholder
+                    };
         
-            const defaultValue =
-                typeof argInfo.defaultValue === 'undefined' ? '' :
-                    xmlEscape(maybeFormatMessage(argInfo.defaultValue, this.makeMessageContextForTarget()).toString());
+                    const defaultValue =
+                        typeof argInfo.defaultValue === 'undefined' ? '' :
+                            xmlEscape(maybeFormatMessage(argInfo.defaultValue, this.makeMessageContextForTarget()).toString());
         
-            if (argTypeInfo.check) {
-                // Right now the only type of 'check' we have specifies that the
-                // input slot on the block accepts Boolean reporters, so it should be
-                // shaped like a hexagon
-                argJSON.check = argTypeInfo.check;
-            }
+                    if (argTypeInfo.check) {
+                        // Right now the only type of 'check' we have specifies that the
+                        // input slot on the block accepts Boolean reporters, so it should be
+                        // shaped like a hexagon
+                        argJSON.check = argTypeInfo.check;
+                    }
         let valueName;
         let shadowType;
         let fieldName;
