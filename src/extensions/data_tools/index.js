@@ -153,11 +153,12 @@ class DataTools {
         let fileNames = Object.keys(files);
         if(fileNames.length === 0) {
             return {
+                
                 "NO FILES UPLOADED": ["NO COLUMN DATA"]
             };
         }
         let data = {};
-        
+    
         fileNames.forEach(name =>{
             let columns = Object.keys(files[name][0]);
             data[name] = columns;
