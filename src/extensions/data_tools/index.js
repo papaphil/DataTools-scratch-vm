@@ -12,7 +12,7 @@ const files = {};
 
 var fileBlocks = [];
 
-const NO_FILES = "NO FILES UPLOADED";
+const NO_FILES ="";
 
 class DataTools {
     static get EXTENSION_ID() {
@@ -89,7 +89,7 @@ class DataTools {
                         },
                         ROW: {
                             type: ArgumentType.NUMBER,
-                            value: 1
+                            defaultValue: 1
                         }
                     }
                 },
@@ -109,11 +109,11 @@ class DataTools {
                         },
                         ROW: {
                             type: ArgumentType.NUMBER,
-                            value: 1
+                            defaultValue: 1
                         },
                         VALUE: {
                             type: ArgumentType.STRING,
-                            value: ""
+                            defaultValue: " "
                         }
                     }
                 },
@@ -132,7 +132,7 @@ class DataTools {
                         },
                         NEW: {
                             type: ArgumentType.STRING,
-                            value: ""
+                            defaultValue: " "
                         }
                     }
                 },
@@ -154,7 +154,7 @@ class DataTools {
         if(fileNames.length === 0) {
             return {
                 
-                "NO FILES UPLOADED": ["NO COLUMN DATA"]
+                "":["NO FILES UPLOADED"]
             };
         }
         let data = {};

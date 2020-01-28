@@ -1297,7 +1297,6 @@ class Runtime extends EventEmitter {
                         type: 'input_value',
                         name: placeholder
                     };
-        
                     const defaultValue =
                         typeof argInfo.defaultValue === 'undefined' ? '' :
                             xmlEscape(maybeFormatMessage(argInfo.defaultValue, this.makeMessageContextForTarget()).toString());
@@ -1308,12 +1307,14 @@ class Runtime extends EventEmitter {
                         // shaped like a hexagon
                         argJSON.check = argTypeInfo.check;
                     }
+                
         let valueName;
         let shadowType;
         let fieldName;
         if (argInfo.menu) {
             //Data files need a custom menu displayed
             if(argInfo.type === ArgumentType.DATA_FILE) {
+                alert(defaultValue);
                 const menuInfo = context.categoryInfo.menuInfo[argInfo.menu];
                 argJSON.type = 'field_datafile';
                 argJSON.options = menuInfo.items;
