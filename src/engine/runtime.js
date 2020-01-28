@@ -2560,6 +2560,17 @@ class Runtime extends EventEmitter {
     addDataFileRow(fileName) {
         return this.peripheralExtensions["datatools"].addDataFileRow(fileName);
     }
+
+
+    /**
+     * Performs an action within the given extension
+     * @param {string} extension The extension
+     * @param {string} action The action
+     * @param {object} args The function arguments
+     */
+    performExtensionAction(extension, action, args) {
+        return this.peripheralExtensions[extension].performAction(action, args);
+    }
 }
 
 /**
