@@ -2528,41 +2528,6 @@ class Runtime extends EventEmitter {
     }
 
     /**
-     * Add a data file to the data tools extension
-     * @param {string} name The file name
-     * @param {Array} data The file data
-     */
-    addDataFile(name, data) {
-        this.peripheralExtensions["datatools"].addDataFile(name, data);
-    }
-
-    /**
-     * Remove the specified file from the data tools extension
-     * @param {string} name The name of the file
-     * @returns {Boolean} Whether or not the file was removed correctly
-     */
-    removeDataFile(name) {
-        return this.peripheralExtensions["datatools"].removeDataFile(name);
-    }
-
-    getDataFileNames() {
-        return this.peripheralExtensions["datatools"].getDataFileNames();
-    }
-
-    getDataFileContents(name) {
-        return this.peripheralExtensions["datatools"].getDataFileContents(name);
-    }
-
-    updateDataFile(fileName, row, colName, value) {
-        return this.peripheralExtensions["datatools"].updateDataFileFromTable(fileName, row, colName, value);
-    }
-
-    addDataFileRow(fileName) {
-        return this.peripheralExtensions["datatools"].addDataFileRow(fileName);
-    }
-
-
-    /**
      * Performs an action within the given extension
      * @param {string} extension The extension
      * @param {string} action The action
