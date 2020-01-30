@@ -1314,7 +1314,6 @@ class Runtime extends EventEmitter {
         if (argInfo.menu) {
             //Data files need a custom menu displayed
             if(argInfo.type === ArgumentType.DATA_FILE) {
-                alert(defaultValue);
                 const menuInfo = context.categoryInfo.menuInfo[argInfo.menu];
                 argJSON.type = 'field_datafile';
                 argJSON.options = menuInfo.items;
