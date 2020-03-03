@@ -15,7 +15,7 @@ const files = {};
 
 var fileBlocks = [];
 
-const NO_FILES ="";
+const NO_FILES ="NO FILES UPLOADED";
 
 class DataTools {
     static get EXTENSION_ID() {
@@ -143,6 +143,21 @@ class DataTools {
                         }
                     }
                 },
+                {
+                    opcode: 'createEmptyDataset',
+                    text: formatMessage({
+                        id: 'datatools.createDataset',
+                        default: 'create new data set [NAME]',
+                        description: 'create an empty dataset and give it a name'
+                    }),
+                    blocktype: BlockType.COMMAND,
+                    arguments: {
+                        NAME: {
+                            type: ArgumentType.STRING,
+                            defaultValue: " "
+                        }
+                    },
+                }
             ],
             menus: {
                 columnMenu: {
@@ -183,6 +198,28 @@ class DataTools {
     }
 
     /**
+     * Creates a Data set with the desired name that does not have any rows or columns
+     * @param {string} args{NAME} holds the name the user wishes to give to the newly created empty data set
+     */
+    createEmptyDataset(args) {
+        let {NAME} = args;
+        if(files[NAME]){
+            NAME = this.generateFileDisplayName(NAME);
+        }
+
+        files[NAME] = [];//doing the exact same thing as addDataFile but without the check for an empty dataset so it is created without columns
+        fileBlocks.push(
+        {
+            opcode: 'file_' + NAME,
+            func: 'getFilename',
+            text: NAME,
+            blockType: BlockType.REPORTER
+        });
+        //Update the workspace to add the new file
+        this._runtime.requestToolboxExtensionsUpdate();
+    }
+
+    /**
      * Generates column data for dropdown display
      * @returns {object} An object containing arrays with the columns of each file
      */
@@ -210,6 +247,8 @@ class DataTools {
      */
     duplicateDataset(args) {
         let {ORIGINAL, NEW} = args;
+        if(!ORIGINAL || ORIGINAL === NO_FILES)
+            return;
         if(NEW === ""){
             NEW = ORIGINAL;
         }
@@ -319,7 +358,8 @@ class DataTools {
      */
     addDataFileRow(args) {
         let { FILENAME } = args;
-        if(!FILENAME || FILENAME === ''){
+        console.log(FILENAME);
+        if(!FILENAME || FILENAME === NO_FILES){
             return;
         }
 
