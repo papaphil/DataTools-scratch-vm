@@ -81,6 +81,30 @@ class DataTools {
                     }
                 },
                 {
+                    opcode: 'addDataFileColumn',
+                    text: formatMessage({
+                        id: 'datatools.addDataFileColumn',
+                        default: 'add [TYPE] column [NAME] to [FILENAME]',
+                        description: 'add an empty column to a file'
+                    }),
+                    blocktype: BlockType.COMMAND,
+                    arguments: {
+                        
+                        TYPE: {
+                            type: ArgumentType.STRING,
+                            menu: 'typeMenu',
+                        },
+                        NAME: {
+                            type: ArgumentType.STRING,
+                            defaultValue: ' '
+                        },
+                        FILENAME: {
+                            type: ArgumentType.STRING,
+                            menu: 'fileMenu',
+                        }
+                    }
+                },
+                {
                     opcode: 'getColumnAtRow',
                     text: formatMessage({
                         id: 'datatools.getColumnAtRow',
@@ -166,6 +190,9 @@ class DataTools {
                 fileMenu: {
                     acceptReporters: true,
                     items: 'getFileNames'
+                },
+                typeMenu: {
+                    items: ['word', 'number']
                 }
             }
         }
@@ -190,11 +217,48 @@ class DataTools {
             case 'updateDataFile':
                 return this.updateDataFileFromTable(args.fileName, args.row, args.colName, args.value);
             case 'addDataFileRow':
-                return this.addDataFileRow({FILENAME: args.fileName})
+                return this.addDataFileRow({FILENAME: args.fileName});
+            case 'addDataFileColumn':
+                return this.addDataFileColumn({TYPE: args.type, NAME: args.name, FILENAME: args.fileName});
             default:
                 alert("DATATOOLS: Invalid action received");
                 break;
         }
+    }
+
+    /**
+     * 
+     * @param {*} args 
+     */
+    addDataFileColumn(args){
+        let {TYPE, NAME, FILENAME} = args;
+        console.log(NAME);
+        if(!FILENAME || FILENAME === NO_FILES)
+            return;
+        if(files[FILENAME].length === 0){
+            files[FILENAME][0]={};
+            if(TYPE == 'word'){
+                files[FILENAME][0][NAME] = '';
+            } 
+            else {
+                files[FILENAME][0][NAME] = 0;
+            }
+        }
+        else {
+            let i;
+            let rowCount = files[FILENAME].length;
+            if(TYPE == 'word'){
+                for(i = 0; i < rowCount; i++){
+                    files[FILENAME][i][NAME] = '';
+                }
+            }
+            else{
+                for(i =0; i<rowCount; i++){
+                    files[FILENAME][i][NAME] = 0;
+                }
+            }
+        }
+        
     }
 
     /**
