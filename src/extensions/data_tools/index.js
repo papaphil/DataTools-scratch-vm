@@ -235,6 +235,8 @@ class DataTools {
         console.log(NAME);
         if(!FILENAME || FILENAME === NO_FILES)
             return;
+        if(TYPE !='word' && TYPE!='number')
+            return;
         if(files[FILENAME].length === 0){
             files[FILENAME][0]={};
             if(TYPE == 'word'){
@@ -245,6 +247,10 @@ class DataTools {
             }
         }
         else {
+            if(files[FILENAME][0][NAME]){
+                alert("Column already exists, please try again with a different name");
+                return;
+            }
             let i;
             let rowCount = files[FILENAME].length;
             if(TYPE == 'word'){
