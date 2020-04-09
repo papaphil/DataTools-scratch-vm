@@ -71,7 +71,6 @@ class DataTools {
 
             blocks: [
                 ...this._fileBlocks,
-                '---',
                 //Add other blocks below
                 {
                     opcode: 'getRowCount',
@@ -203,7 +202,7 @@ class DataTools {
                             defaultValue: " "
                         }
                     },
-                '---',
+                },
                 {
                     opcode: 'mapFunctionToColumn',
                     text: formatMessage({
