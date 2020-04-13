@@ -306,16 +306,15 @@ class DataTools {
     }
 
     /**
-     * 
-     * @param {*} args 
+     * Adds a new column to an existing data set, 
+     * @param {*} args{TYPE, NAME, FILENAME} contains the type of the column that the user wants to add, the name for the column and the file name
      */
     addDataFileColumn(args){
         let {TYPE, NAME, FILENAME} = args;
-        console.log(NAME);
         if(!FILENAME || FILENAME === NO_FILES)
-            return;
+            return '';
         if(TYPE !='word' && TYPE!='number')
-            return;
+            return '';
         if(this._files[FILENAME].length === 0){
             this._files[FILENAME][0]={};
             if(TYPE == 'word'){
@@ -327,8 +326,8 @@ class DataTools {
         }
         else {
             if(this._files[FILENAME][0][NAME]){
-                alert("Column already exists, please try again with a different name");
-                return;
+                //alert("Column already exists, please try again with a different name");
+                return '';
             }
             let i;
             let rowCount = this._files[FILENAME].length;
@@ -472,7 +471,7 @@ class DataTools {
         const cleanPattern = new RegExp(`[^-+0-9${ example.charAt( 1 ) }]`, 'g');
         const cleaned = value.replace(cleanPattern, '');
         const normalized = cleaned.replace(example.charAt(1), '.');
-  
+        console.log(locale);
         return parseFloat(normalized);
     }
 
@@ -481,7 +480,7 @@ class DataTools {
      * @param {Object} args Object containing arguments, including COlUMN, ROW, and VALUE to set to
      */
     setColumnAtRow(args) {
-        let { COLUMN, ROW, VALUE} = args;
+        let { COLUMN, ROW, VALUE, language} = args;
 
         let colArr = COLUMN.split(']');
         let fileName = colArr[0].substring(1);
@@ -492,7 +491,7 @@ class DataTools {
         }
         if(typeof(this._files[fileName][ROW - 1][col]) === "number") {
             if(!isNaN(VALUE)){
-                this._files[fileName][ROW - 1][col] = this.parseNumber(VALUE);
+                this._files[fileName][ROW - 1][col] = this.parseNumber(VALUE, language);
             }
         }
         else{
@@ -507,9 +506,8 @@ class DataTools {
      */
     addDataFileRow(args) {
         let { FILENAME } = args;
-        console.log(FILENAME);
         if(!FILENAME || FILENAME === NO_FILES){
-            return;
+            return "";
         }
 
         let first = this._files[FILENAME][0];
