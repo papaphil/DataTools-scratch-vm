@@ -53,6 +53,14 @@ class DataFunctionHelper {
         this._generatedData = {};
 
         /**
+         * Holds any saved datasets by storing their old name and new name. This functions very similarly to 
+         * this._generatedData, except it is used to memoize saves. This prevents errors that caused
+         * data to get overwritten by extra saves.
+         * Each value is accessible by the top block's ID and the old data set's name
+         */
+        this._savedDatasets = {};
+
+        /**
          * Holds the loop counters for each currently iterating function block. This allows us
          * to accurately insert data in the setMapResult function, as we know which row the iteration
          * is currently on. 
@@ -68,8 +76,6 @@ class DataFunctionHelper {
          * Each value is accessible by the top block's ID
          */
         this._errors = {};
-
-        this._savedDatasets = {};
     }
 
     /**
@@ -142,6 +148,11 @@ class DataFunctionHelper {
         return false;
     }
 
+    /**
+     * Memoizes the saving of a data set using its old and new names.
+     * @param {Object} args The block's arguments, contains both the old and new data set name
+     * @param {Object} util Block Utility provided by the runtime
+     */
     saveDataset(args, util) {
         let oldName = args.FUNCTION;
         let newName = args.NAME;
@@ -154,6 +165,12 @@ class DataFunctionHelper {
         this._savedDatasets[topBlock][oldName] = newName;
     }
 
+    /**
+     * Checks whether a given data set has already been memoized
+     * @param {Object} args The block's arguments, contains both the old and new data set name
+     * @param {Object} util Block Utility provided by the runtime
+     * @returns {Boolean} Whether the data set has already been memoized
+     */
     checkDataset(args, util) {
         let oldName = args.FUNCTION;
         let newName = args.NAME;
@@ -164,6 +181,12 @@ class DataFunctionHelper {
         return this._savedDatasets[topBlock][oldName] === newName;
     }
 
+    /**
+     * Checks whether save data needs to be deleted, which is
+     * true when there is no more generated data
+     * @param {Object} util Block Utility provided by the runtime
+     * @returns {Boolean} Whether save data was deleted
+     */
     checkDeleteSaveData(util) {
         let topBlock = util.thread.topBlock;
         if(!this._generatedData[topBlock]) {
