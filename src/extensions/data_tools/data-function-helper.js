@@ -2,7 +2,7 @@
 //See LICENSE for more information.
 
 const functionBlockOpcode = "datatools_executeDataFunction";
-const functionBlockSaveOpcode = "datatools_executeDataFunctionAndSave";
+const saveBlockOpcode = "datatools_saveFunctionData";
 
 /**
  * This class is used to assist the Data Tools extension in mapping data sets. 
@@ -51,6 +51,14 @@ class DataFunctionHelper {
          * Each value is accessible by the top block's ID and the requested column data.
          */
         this._generatedData = {};
+
+        /**
+         * Holds any saved datasets by storing their old name and new name. This functions very similarly to 
+         * this._generatedData, except it is used to memoize saves. This prevents errors that caused
+         * data to get overwritten by extra saves.
+         * Each value is accessible by the top block's ID and the old data set's name
+         */
+        this._savedDatasets = {};
 
         /**
          * Holds the loop counters for each currently iterating function block. This allows us
@@ -140,6 +148,54 @@ class DataFunctionHelper {
         return false;
     }
 
+    /**
+     * Memoizes the saving of a data set using its old and new names.
+     * @param {Object} args The block's arguments, contains both the old and new data set name
+     * @param {Object} util Block Utility provided by the runtime
+     */
+    saveDataset(args, util) {
+        let oldName = args.FUNCTION;
+        let newName = args.NAME;
+        let topBlock = util.thread.topBlock;
+
+        if(!this._savedDatasets[topBlock]) {
+            this._savedDatasets[topBlock] = {};
+        }
+
+        this._savedDatasets[topBlock][oldName] = newName;
+    }
+
+    /**
+     * Checks whether a given data set has already been memoized
+     * @param {Object} args The block's arguments, contains both the old and new data set name
+     * @param {Object} util Block Utility provided by the runtime
+     * @returns {Boolean} Whether the data set has already been memoized
+     */
+    checkDataset(args, util) {
+        let oldName = args.FUNCTION;
+        let newName = args.NAME;
+        let topBlock = util.thread.topBlock;
+
+        if(!this._savedDatasets[topBlock]) return false;
+
+        return this._savedDatasets[topBlock][oldName] === newName;
+    }
+
+    /**
+     * Checks whether save data needs to be deleted, which is
+     * true when there is no more generated data
+     * @param {Object} util Block Utility provided by the runtime
+     * @returns {Boolean} Whether save data was deleted
+     */
+    checkDeleteSaveData(util) {
+        let topBlock = util.thread.topBlock;
+        if(!this._generatedData[topBlock]) {
+            delete this._savedDatasets[topBlock]
+            return true;
+        }
+        return false;
+    }
+
 //#region Mapping Functions
 
     /**
@@ -195,8 +251,7 @@ class DataFunctionHelper {
      */
     executeMapFunction(args, util, id, rowCount, addDataFile, generateFileDisplayName, getRow) {
         let topBlock = util.thread.topBlock;
-        console.log(topBlock);
-        console.log(id);
+
         if(!this._errors[topBlock] && rowCount === 0) {
             this._handleError("Must select a file.", topBlock);
         }
@@ -210,7 +265,7 @@ class DataFunctionHelper {
         }
  
         if(this._errors[topBlock]) {
-            this._deleteWorkingData(id, topBlock);//id !== topBlock ? null : topBlock);
+            this._deleteWorkingData(id, id !== topBlock ? null : topBlock);
             return "";
         }
 
@@ -355,8 +410,8 @@ class DataFunctionHelper {
         return id;
     }
 
-    _checkOpcode(opcode) {
-        return opcode === functionBlockOpcode || opcode === functionBlockSaveOpcode;
+    _checkOpcode(opcode, checkSave = false) {
+        return opcode === functionBlockOpcode || (checkSave && opcode === saveBlockOpcode);
     }
 
     /**
@@ -401,11 +456,11 @@ class DataFunctionHelper {
      */
     _generateFunctionBlockDepthMap(util) {
         let blocks = util.target.blocks._blocks;         
-        let options = Object.keys(blocks).filter(key => this._checkOpcode(blocks[key].opcode));
+        let options = Object.keys(blocks).filter(key => this._checkOpcode(blocks[key].opcode, true));
         let outermost = this._getOutermostBlock(util);
         //We can't run this function in the toolbar
         if(!outermost) return;
-        console.log(blocks);
+
         let depth = 0;
         let block = outermost;
         let results = [];
@@ -421,11 +476,14 @@ class DataFunctionHelper {
                 }
             });
             block = next;
-            depth++;
-            //results[block] = {depth, topBlock: util.thread.topBlock};
-            if(block) {
-                results.push(block);
+            if(blocks[block] && blocks[block].opcode !== saveBlockOpcode) {
+                depth++;
+                //results[block] = {depth, topBlock: util.thread.topBlock};
+                if(block) {
+                    results.push(block);
+                }
             }
+
         }
         this._depthMaps[util.thread.topBlock] = results;
         this._depths[util.thread.topBlock] = this._depthMaps[util.thread.topBlock].length - 1;
