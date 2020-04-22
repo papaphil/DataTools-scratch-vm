@@ -313,7 +313,7 @@ class DataTools {
                     items: 'getFileNames'
                 },
                 typeMenu: {
-                    items: ['word', 'number']
+                    items: ['text', 'number']
                 },
                 fileMenuSquare: {
                     acceptReporters: true,
@@ -369,11 +369,11 @@ class DataTools {
         let {TYPE, NAME, FILENAME} = args;
         if(!FILENAME || FILENAME === NO_FILES)
             return '';
-        if(TYPE !='word' && TYPE!='number')
+        if(TYPE !='text' && TYPE!='number')
             return '';
         if(this._files[FILENAME].length === 0){
             this._files[FILENAME][0]={};
-            if(TYPE == 'word'){
+            if(TYPE == 'text'){
                 this._files[FILENAME][0][NAME] = '';
             } 
             else {
@@ -387,7 +387,7 @@ class DataTools {
             }
             let i;
             let rowCount = this._files[FILENAME].length;
-            if(TYPE == 'word'){
+            if(TYPE == 'text'){
                 for(i = 0; i < rowCount; i++){
                     this._files[FILENAME][i][NAME] = '';
                 }
@@ -410,15 +410,7 @@ class DataTools {
         if(this._files[NAME]){
             NAME = this.generateFileDisplayName(NAME);
         }
-
         this._files[NAME] = [];//doing the exact same thing as addDataFile but without the check for an empty dataset so it is created without columns
-        this._fileBlocks.push(
-        {
-            opcode: 'file_' + NAME,
-            func: 'getFilename',
-            text: NAME,
-            blockType: BlockType.REPORTER
-        });
         //Update the workspace to add the new file
         this._runtime.requestToolboxExtensionsUpdate();
     }
@@ -494,7 +486,7 @@ class DataTools {
             }
         });
 
-        if(names.length === 0) names.push("");
+        if(names.length === 0) names.push(NO_FILES);
         return names;
     }
 
@@ -525,7 +517,7 @@ class DataTools {
     * @return {Number} The float value of the string (e.g. 453323)
     */
     parseNumber(value, locale = navigator.language) {
-        const example = Intl.NumberFormat(locale).format('1.1');
+        const example = Intl.NumberFormat(locale).format('1.1'); 
         const cleanPattern = new RegExp(`[^-+0-9${ example.charAt( 1 ) }]`, 'g');
         const cleaned = value.replace(cleanPattern, '');
         const normalized = cleaned.replace(example.charAt(1), '.');
@@ -741,7 +733,7 @@ class DataTools {
     }
 
     saveFunctionData(args) {
-        if(args.FUNCTION) {
+        if(args.FUNCTION && args.FUNCTION != NO_FILES) {
             let oldName = args.FUNCTION;
             let file = this._files[oldName];
 

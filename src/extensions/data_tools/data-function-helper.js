@@ -195,7 +195,8 @@ class DataFunctionHelper {
      */
     executeMapFunction(args, util, id, rowCount, addDataFile, generateFileDisplayName, getRow) {
         let topBlock = util.thread.topBlock;
-
+        console.log(topBlock);
+        console.log(id);
         if(!this._errors[topBlock] && rowCount === 0) {
             this._handleError("Must select a file.", topBlock);
         }
@@ -209,7 +210,7 @@ class DataFunctionHelper {
         }
  
         if(this._errors[topBlock]) {
-            this._deleteWorkingData(id, id !== topBlock ? null : topBlock);
+            this._deleteWorkingData(id, topBlock);//id !== topBlock ? null : topBlock);
             return "";
         }
 
@@ -404,7 +405,7 @@ class DataFunctionHelper {
         let outermost = this._getOutermostBlock(util);
         //We can't run this function in the toolbar
         if(!outermost) return;
-
+        console.log(blocks);
         let depth = 0;
         let block = outermost;
         let results = [];

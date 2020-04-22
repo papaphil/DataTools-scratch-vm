@@ -2,9 +2,464 @@
 const test = require('tap').test;
 const data = require('../../src/extensions/data_tools/index.js');
 const Runtime = require('../../src/engine/runtime');
+const dataHelper = require('../../src/extensions/data_tools/data-function-helper')
 
 const dataset = [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}];
 const fileName = "fileName";
+
+const util = {
+    thread:{
+        topBlock: {
+          
+        },
+        peekStack(){
+           return this.topBlock.id;     
+        }
+    },
+    target: {
+        blocks: {
+            _blocks: {
+                
+            }
+        }
+    },
+    startFunctionBranch(){
+        util.functionBranchReached = true;
+        return;
+    },
+    functionBranchReached: false
+}
+
+
+
+test('find containing loop block', t => {
+    let blocks = new dataHelper();
+    try{
+        blocks._findContainingLoopBlock(util);
+    }
+    catch(ReferenceError)//catching a reference error to account for the fact that the window.alert is not available without a browser
+    {
+        t.ok(true);
+    }
+    util.thread.topBlock = {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null
+        }
+    }; 
+    t.equal(blocks._findContainingLoopBlock(util, false), "dataFunction");
+    t.equal(blocks._findContainingLoopBlock(util, true), "dataFunction");
+
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: 'dataFunction2'
+        },
+        dataFunction2: {
+            id: 'dataFunction2',
+            opcode: 'datatools_executeDataFunction',
+            parent: null
+        }
+    }; 
+    t.equal(blocks._findContainingLoopBlock(util, false), "dataFunction");
+    t.end();
+});
+
+test('check opcode', t => {
+    let blocks = new dataHelper();
+    t.equal(blocks._checkOpcode('datatools_executeDataFunction'), true, 'checking if the opcode is equal to executeDataFunction');
+    t.equal(blocks._checkOpcode('datatools_executeDataFunctionAndSave'), true, 'checking if the opcode is equal to executeDataFunctionAndSave');
+    t.equal(blocks._checkOpcode('setMapResult'), false, 'checking when opcode is setMapResult');
+    t.end();
+});
+
+test('get outermost block', t =>{
+    let blocks = new dataHelper();
+    util.thread.topBlock = {
+        id: 'dataFunction',
+        opcode: 'datatools_executeDataFunction',
+        parent: null,
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        inputs: {},
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null
+        }
+    }; 
+    t.equal(blocks._getOutermostBlock(util), 'dataFunction', 'Case where the executing block is executeDataFunction');
+
+    util.thread.topBlock = {
+        id: 'sayFor',
+        opcode: 'looks_sayforsecs',
+        parent: null,
+        inputs: {
+            MESSAGE: {block: 'dataFunction'}
+        }
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null
+        },
+        sayFor : {
+            id: 'sayFor',
+            opcode: 'looks_sayforsecs',
+            parent: null,
+            inputs: {
+                MESSAGE: {block: 'dataFunction'}
+            }
+        }
+    }; 
+    t.equal(blocks._getOutermostBlock(util), 'dataFunction', 'Case where map is inside of a say block');
+    t.end();
+});
+
+test('creating depth map for data function helper', t=>{
+    let blocks = new dataHelper();
+    util.thread.topBlock = {
+        id: 'dataFunction',
+        opcode: 'datatools_executeDataFunction',
+        parent: null,
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        inputs: {},
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null,
+            inputs: {
+                NAME: {
+                    block: 'setMap'
+                }
+            }
+        }
+    }; 
+
+    blocks._generateFunctionBlockDepthMap(util);
+    t.equal(blocks._depthMaps[util.thread.topBlock][0], 'dataFunction', 'Case when there is only one map block');
+    t.equal(blocks._depths[util.thread.topBlock], 0, 'case when there is only one map block');
+
+    util.target.blocks._blocks = {
+            setMap: {
+            id: 'setMap',
+            opcode: 'datatools_setMapResult',
+            parent: 'dataFunction',
+            inputs: {},
+            }
+            ,
+            dataFunction: {
+                id: 'dataFunction',
+                opcode: 'datatools_executeDataFunction',
+                parent: null,
+                inputs: {
+                    NAME: {
+                        block: 'dataFunction2'
+                    }
+                }
+            },
+            dataFunction2: {
+                id: 'dataFunction2',
+                opcode: 'datatools_executeDataFunction',
+                parent: null,
+                inputs: {
+                    NAME: {
+                        block: 'setMap'
+                    }
+                }
+            }
+    };
+    blocks._generateFunctionBlockDepthMap(util);
+    t.equal(blocks.getID(util.thread.topBlock), 'dataFunction2', 'Case when there is two nested map blocks');
+    t.equal(blocks._depths[util.thread.topBlock], 1, 'case when there is two nested map blocks');
+    t.end();
+});
+
+test('handle error', t =>{
+    let blocks = new dataHelper();
+    try {
+        blocks._handleError('', {});
+    }
+    catch(ReferenceError)//catching a reference error to account for the fact that the window.alert is not available without a browser
+    {
+       t.ok(true, 'Caught a reference error on alert'); 
+    }
+    t.end();
+});
+
+test('generate new data set', t=> {
+    let blocks = new dataHelper();
+    let out = blocks._generateNewDataSet([{age: 15}, {age: 200}, {age: undefined}, {age: 0}]);
+    t.equal(out[0].age, 15, 'checking that number got assigned properly');
+    t.equal(out[2].age, 0, 'checking that the undefined value got set to 0');
+    t.equal(out[3].age, 0, 'checking that 0 got set properly');
+
+    out = blocks._generateNewDataSet([{name: 'phillip'}, {name: undefined}, {name: null}, {name: ''}]);
+    t.equal(out[0].name, 'phillip', 'checking that name got assigned properly');
+    t.equal(out[1].name, '', 'checking that the undefined value got set to empty string');
+    t.equal(out[2].name, '', 'checking that null value got set properly');
+    t.equal(out[3].name, '', 'checking that an empty string value stays the same');
+    t.end();
+});
+
+test('setting the map result', t=>{
+    let blocks = new dataHelper();
+    util.thread.topBlock = {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: null,
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null
+        }
+    };
+    blocks._errors[util.thread.topBlock] = true; 
+    let id = blocks._findContainingLoopBlock(util, false);
+    blocks._loopCounters[id] = 1;
+   
+    blocks.setMapResult({COLUMN: 'age', VALUE: 15}, util);
+    t.same(blocks._errors[util.thread.topBlock], null, 'checking that the data for the block gets deleted');
+
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null
+        }
+    };
+    blocks._errors[util.thread.topBlock] = true;
+    blocks.setMapResult({COLUMN: 'age', VALUE: 15}, util);
+    t.equal(blocks._loopCounters[id], 1, 'checking that the loop counter value is not deleted when there is an error');
+    blocks._errors[util.thread.topBlock] = false;    
+
+    id = blocks._findContainingLoopBlock(util, false);
+    blocks._loopCounters[id] = 1;
+    blocks.setMapResult({COLUMN: 'age', VALUE: 15}, util);
+    blocks.setMapResult({COLUMN: 'name', VALUE: 'Mickey'}, util);
+    blocks._loopCounters[id] += 1;
+    blocks.setMapResult({COLUMN: 'name', VALUE: 'Daffy Duck'}, util);
+    blocks.setMapResult({COLUMN: 'age', VALUE: 55}, util);
+    t.equal(blocks._results[id][0]['age'], 15, 'testing that the age value got set properly in the results array');
+    t.equal(blocks._results[id][1]['age'], 55, 'testing that the age value got set properly in the results array');
+    t.equal(blocks._results[id][0]['name'], 'Mickey', 'testing that the name value got set properly in the results array');
+    t.equal(blocks._results[id][1]['name'], 'Daffy Duck', 'testing that the name value got set properly in the results array');
+    t.end();
+});
+
+test('delete working data', t=>{
+    let blocks = new dataHelper();
+    util.thread.topBlock = {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null
+        }
+    };
+    let id = blocks._findContainingLoopBlock(util);
+    blocks._loopCounters[id] = 1;
+    blocks._currentRowValues[id] = 15;
+    blocks._results[id]  = [{'age': 15}];
+    blocks._depthMaps[util.thread.topBlock] = ['setMap'];
+    blocks._depths[util.thread.topBlock] = 0;
+    blocks._errors[util.thread.topBlock] = true;
+    blocks._generatedData[util.thread.topBlock] = {fileName: 'map: fileName'};
+    blocks._deleteWorkingData(id, util.thread.topBlock);
+    t.same(blocks._loopCounters[id], null, 'loop counter deleted');
+    t.same(blocks._currentRowValues[id], null, 'current row values deleted');
+    t.same(blocks._results[id], null, 'results deleted');
+    t.same(blocks._depthMaps[util.thread.topBlock], null, 'depth map deleted');
+    t.same(blocks._depths[util.thread.topBlock], null, 'depths deleted');
+    t.same(blocks._errors[util.thread.topBlock], null, 'errors deleted');
+    t.same(blocks._generatedData[util.thread.topBlock], null, 'generated data deleted');
+    
+
+    blocks._loopCounters[id] = 1;
+    blocks._currentRowValues[id] = 15;
+    blocks._results[id]  = [{'age': 15}];
+    blocks._deleteWorkingData(id, null);
+    t.same(blocks._loopCounters[id], null, 'loop counter deleted');
+    t.same(blocks._currentRowValues[id], null, 'current row values deleted');
+    t.same(blocks._results[id], null, 'results deleted');
+    t.end();
+});
+
+test('get current row', t=>{
+    let runtime = new Runtime();
+    let blocks = new data(runtime);
+    util.thread.topBlock = {
+        id: 'dataFunction',
+        opcode: 'datatools_executeDataFunction',
+        parent: null,
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        inputs: {},
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null,
+            inputs: {
+                NAME: {
+                    block: 'setMap'
+                }
+            }
+        }
+    }; 
+    blocks._helper._currentRowValues['dataFunction'] = {name: undefined};
+    try{
+        blocks.getCurrentRow({COLUMN: 'name'}, util);
+    }
+    catch(ReferenceError)
+    {
+        t.ok(true, 'checking when there is no data loaded into the currentRowValues array');
+    }
+    blocks._helper._currentRowValues['dataFunction']= {name: 'phillip'};
+    t.equal(blocks.getCurrentRow({COLUMN: 'name'}, util), 'phillip', 'Checking that the correct value is retrieved and the system does not error out');
+    t.end();
+});
+
+test('save function data', t=>{
+    let runtime = new Runtime();
+    let blocks = new data(runtime);
+    blocks.saveFunctionData({FUNCTION: 'NO FILES UPLOADED', NAME: 'fileName'});
+    t.same(blocks._files['fileName'], null);
+    blocks.addDataFile('file', [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}]);
+    t.equal(blocks.saveFunctionData({FUNCTION: 'file', NAME: 'fileName'}), 'fileName', 'checking that the new name is returned');
+    t.same(blocks._files['file'], null);
+    t.equal(blocks._files['fileName'][1].age, 36, 'checking that the data is saved properly');
+    blocks.addDataFile('file', [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}]);
+    t.equal(blocks.saveFunctionData({FUNCTION: 'file', NAME: 'fileName'}), 'fileName (1)', 'checking that the new name is returned');
+    t.end();
+});
+
+test('execute data function', t=>{
+    let runtime = new Runtime();
+    let blocks = new data(runtime);
+    util.thread.topBlock = {
+        id: 'dataFunction',
+        opcode: 'datatools_executeDataFunction',
+        parent: null,
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        inputs: {},
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null,
+            inputs: {
+                NAME: {
+                    block: 'setMap'
+                }
+            }
+        }
+    }; 
+    try{
+        blocks.executeDataFunction({FUNCTION: 'map', NAME: 'NO FILES UPLOADED'}, util);
+    }
+    catch(ReferenceError)//catching a reference error to account for the fact that the window.alert is not available without a browser
+    {
+        t.ok(true, 'Testing when no files are uploaded that the system gives an alert to the user');
+    }
+
+    blocks.addDataFile('fileName', [ {name:'mikey', age:25 }, {name:'joe', age:36}]);
+    blocks._helper._errors[util.thread.topBlock] = true;
+    t.equal(blocks.map({FUNCTION: 'map', NAME: 'fileName'}, util), '', 'checking if there is a logged error with the top block it fails gracefully');
+
+    blocks._helper._errors[util.thread.topBlock] = false;
+    blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName'}, util);
+    t.equal(util.functionBranchReached, true, 'checking that the function branch is reached');
+
+    try{
+        
+        blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName'}, util);
+    }
+    catch(ReferenceError)//catching a reference error to account for the fact that the window.alert is not available without a browser
+    {
+        t.ok(true, 'checking that the map result must be set');
+    }
+    blocks.setMapResult({COLUMN: 'name', VALUE: 'mikey'}, util);
+    blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName'}, util);
+    t.equal(blocks._helper._loopCounters['dataFunction'], 2, 'checking that as the map function moves through the loop counter is incremented');
+    blocks.setMapResult({COLUMN: 'name', VALUE: 'joe'}, util);
+    blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName'}, util);
+    t.equal(blocks._files['map: fileName'][0].name, 'mikey');
+    t.equal(blocks._hiddenFiles[0], 'map: fileName', 'File is not saved so it is added to the array of files that are hidden');
+
+    blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName'}, util);
+    blocks.setMapResult({COLUMN: 'name', VALUE: 'mikey'}, util);
+    blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName'}, util);
+    blocks.setMapResult({COLUMN: 'name', VALUE: 'mikey'}, util);
+    blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName', SAVE: true, NEWNAME: 'new map'}, util);
+    t.equal(blocks._files['new map'][0].name, 'mikey');
+    t.equal(blocks._hiddenFiles.includes('new map'), false);
+    t.end();
+});
 
 // Tests adding a data file
 test('Adding Data File to extension', t => {
@@ -17,8 +472,8 @@ test('Adding Data File to extension', t => {
     let output = blocks.getDataFileContents(fileName);
     t.equal(output[0].name, dataset[0].name, "data is added properly to extension from file");
     t.equal(output[0].age, dataset[0].age), "data is added properly to extension from file";
-    t.equal(blocks._fileBlocks[0].text, 'fileName', "file block for the new file created properly");
-    t.equal(blocks._fileBlocks[0].opcode, 'file_fileName', "file block for the new file created properly");
+    t.equal(blocks.generateDisplayedBlocks()[0].text, 'fileName', "file block for the new file created properly");
+    t.equal(blocks.generateDisplayedBlocks()[0].opcode, 'file_fileName', "file block for the new file created properly");
 
     blocks.addDataFile('file', []);//adding a data file with no contents
     t.notEqual(blocks.getFileNames()[1], 'file', "the file name should not have been added because there was no data");
@@ -43,7 +498,7 @@ test('Removing a Data file from the extension', t =>{
     bool =  blocks.removeDataFile('file');
     t.equal(bool, true, "removeDataFile should return false because the file was properly removed");
     fileNames = blocks.getFileNames();
-    t.strictEqual("", fileNames[0], "there should be no files in the system");
+    t.strictEqual("NO FILES UPLOADED", fileNames[0], "there should be no files in the system");
 
     t.strictEqual(blocks.removeDataFile(""), false, "removeDataFile should return false because the name supplied was empty");
     t.strictEqual(blocks.removeDataFile(null), false, "removeDataFile should return false because the name supplied was null")
@@ -189,17 +644,17 @@ test('Adding a column to an existing data set', t=>{
     t.equal(blocks.addDataFileColumn({TYPE: 'number', NAME: 'column', FILENAME: 'NO FILES UPLOADED'}), '', 'File name is NO FILES UPLOADED');
 
     blocks.addDataFile('fileName', [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}]);
-    t.equal(blocks.addDataFileColumn({TYPE: 'fake', NAME: 'column', FILENAME: 'fileName'}), '', 'Type is not word or number');//need to change this to be text later
+    t.equal(blocks.addDataFileColumn({TYPE: 'fake', NAME: 'column', FILENAME: 'fileName'}), '', 'Type is not text or number');//need to change this to be text later
     t.equal(blocks.addDataFileColumn({TYPE: 'number', NAME: 'age', FILENAME: 'fileName'}), '', 'Column already exists');
     
-    blocks.addDataFileColumn({TYPE: 'word', NAME: 'column', FILENAME: 'fileName'});
-    t.equal(blocks.getColumnAtRow({COLUMN: '[fileName] column', ROW: 1}), '', "word column added properly to an already populated data set");
+    blocks.addDataFileColumn({TYPE: 'text', NAME: 'column', FILENAME: 'fileName'});
+    t.equal(blocks.getColumnAtRow({COLUMN: '[fileName] column', ROW: 1}), '', "text column added properly to an already populated data set");
     blocks.addDataFileColumn({TYPE: 'number', NAME: 'num', FILENAME: 'fileName'});
     t.equal(blocks.getColumnAtRow({COLUMN: '[fileName] num', ROW: 3}), 0, "number column added properly to an already populated data set");
 
     blocks.createEmptyDataset({NAME: 'blank'});
-    blocks.addDataFileColumn({TYPE: 'word', NAME: 'name', FILENAME: 'blank'});
-    t.equal(blocks.getColumnAtRow({COLUMN: '[blank] name', ROW: 1}), '', 'Adding a word column to an empty dataset');
+    blocks.addDataFileColumn({TYPE: 'text', NAME: 'name', FILENAME: 'blank'});
+    t.equal(blocks.getColumnAtRow({COLUMN: '[blank] name', ROW: 1}), '', 'Adding a text column to an empty dataset');
     blocks.createEmptyDataset({NAME: 'test'});
     blocks.addDataFileColumn({TYPE: 'number', NAME: 'age', FILENAME: 'test'});
     t.equal(blocks.getColumnAtRow({COLUMN: '[test] age', ROW: 1}), 0, 'Adding a number column to an empty dataset');
