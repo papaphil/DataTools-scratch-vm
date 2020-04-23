@@ -265,7 +265,7 @@ class DataFunctionHelper {
         }
  
         if(this._errors[topBlock]) {
-            this._deleteWorkingData(id, id !== topBlock ? null : topBlock);
+            this._deleteWorkingData(id, topBlock);
             return "";
         }
 
