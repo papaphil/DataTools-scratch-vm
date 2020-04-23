@@ -313,7 +313,7 @@ class DataTools {
                     items: 'getFileNames'
                 },
                 typeMenu: {
-                    items: ['word', 'number']
+                    items: ['text', 'number']
                 },
                 fileMenuSquare: {
                     acceptReporters: true,
@@ -330,6 +330,8 @@ class DataTools {
             }
         }
     }
+
+//#region pls hide this
 
     /**
      * Performs a specified action
@@ -360,19 +362,18 @@ class DataTools {
     }
 
     /**
-     * 
-     * @param {*} args 
+     * Adds a new column to an existing data set, 
+     * @param {*} args{TYPE, NAME, FILENAME} contains the type of the column that the user wants to add, the name for the column and the file name
      */
     addDataFileColumn(args){
         let {TYPE, NAME, FILENAME} = args;
-        console.log(NAME);
         if(!FILENAME || FILENAME === NO_FILES)
-            return;
-        if(TYPE !='word' && TYPE!='number')
-            return;
+            return '';
+        if(TYPE !='text' && TYPE!='number')
+            return '';
         if(this._files[FILENAME].length === 0){
             this._files[FILENAME][0]={};
-            if(TYPE == 'word'){
+            if(TYPE == 'text'){
                 this._files[FILENAME][0][NAME] = '';
             } 
             else {
@@ -381,12 +382,12 @@ class DataTools {
         }
         else {
             if(this._files[FILENAME][0][NAME]){
-                alert("Column already exists, please try again with a different name");
-                return;
+                //alert("Column already exists, please try again with a different name");
+                return '';
             }
             let i;
             let rowCount = this._files[FILENAME].length;
-            if(TYPE == 'word'){
+            if(TYPE == 'text'){
                 for(i = 0; i < rowCount; i++){
                     this._files[FILENAME][i][NAME] = '';
                 }
@@ -409,15 +410,7 @@ class DataTools {
         if(this._files[NAME]){
             NAME = this.generateFileDisplayName(NAME);
         }
-
         this._files[NAME] = [];//doing the exact same thing as addDataFile but without the check for an empty dataset so it is created without columns
-        this._fileBlocks.push(
-        {
-            opcode: 'file_' + NAME,
-            func: 'getFilename',
-            text: NAME,
-            blockType: BlockType.REPORTER
-        });
         //Update the workspace to add the new file
         this._runtime.requestToolboxExtensionsUpdate();
     }
@@ -493,7 +486,7 @@ class DataTools {
             }
         });
 
-        if(names.length === 0) names.push("");
+        if(names.length === 0) names.push(NO_FILES);
         return names;
     }
 
@@ -524,20 +517,20 @@ class DataTools {
     * @return {Number} The float value of the string (e.g. 453323)
     */
     parseNumber(value, locale = navigator.language) {
-        const example = Intl.NumberFormat(locale).format('1.1');
+        const example = Intl.NumberFormat(locale).format('1.1'); 
         const cleanPattern = new RegExp(`[^-+0-9${ example.charAt( 1 ) }]`, 'g');
         const cleaned = value.replace(cleanPattern, '');
         const normalized = cleaned.replace(example.charAt(1), '.');
-  
         return parseFloat(normalized);
     }
 
     /**
      * Sets the value at a row and column in a given file
-     * @param {Object} args Object containing arguments, including COlUMN, ROW, and VALUE to set to
+     * @param {Object} args Object containing arguments, including COlUMN, ROW, and VALUE to set to and language, an optional argument
+     * passed to parseNumber
      */
     setColumnAtRow(args) {
-        let { COLUMN, ROW, VALUE} = args;
+        let { COLUMN, ROW, VALUE, language} = args;
 
         let colArr = COLUMN.split(']');
         let fileName = colArr[0].substring(1);
@@ -548,7 +541,7 @@ class DataTools {
         }
         if(typeof(this._files[fileName][ROW - 1][col]) === "number") {
             if(!isNaN(VALUE)){
-                this._files[fileName][ROW - 1][col] = this.parseNumber(VALUE);
+                this._files[fileName][ROW - 1][col] = this.parseNumber(VALUE, language);
             }
         }
         else{
@@ -563,9 +556,8 @@ class DataTools {
      */
     addDataFileRow(args) {
         let { FILENAME } = args;
-        console.log(FILENAME);
         if(!FILENAME || FILENAME === NO_FILES){
-            return;
+            return "";
         }
 
         let first = this._files[FILENAME][0];
@@ -721,6 +713,8 @@ class DataTools {
         return [...this._files[fileName]];
     }
 
+//#endregion
+
     /**
      * Gets the current row from the data function helper
      * @param {Object} args The block's arguments
@@ -757,7 +751,7 @@ class DataTools {
      * @returns {String} The new file's name
      */
     saveFunctionData(args, util) {
-        if(args.FUNCTION) {
+        if(args.FUNCTION && args.FUNCTION != NO_FILES) {
             let oldName = args.FUNCTION;
             let file = this._files[oldName];
 
