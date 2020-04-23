@@ -85,7 +85,7 @@ test('find containing loop block', t => {
 test('check opcode', t => {
     let blocks = new dataHelper();
     t.equal(blocks._checkOpcode('datatools_executeDataFunction'), true, 'checking if the opcode is equal to executeDataFunction');
-    t.equal(blocks._checkOpcode('datatools_executeDataFunctionAndSave'), true, 'checking if the opcode is equal to executeDataFunctionAndSave');
+    t.equal(blocks._checkOpcode('datatools_saveFunctionData', true), true, 'checking if the opcode is equal to executeDataFunctionAndSave');
     t.equal(blocks._checkOpcode('setMapResult'), false, 'checking when opcode is setMapResult');
     t.end();
 });
@@ -382,14 +382,50 @@ test('get current row', t=>{
 test('save function data', t=>{
     let runtime = new Runtime();
     let blocks = new data(runtime);
-    blocks.saveFunctionData({FUNCTION: 'NO FILES UPLOADED', NAME: 'fileName'});
+    util.thread.topBlock = {
+        id: 'dataFunction',
+        opcode: 'datatools_executeDataFunction',
+        parent: null,
+    };
+    util.target.blocks._blocks = {setMap: {
+        id: 'setMap',
+        opcode: 'datatools_setMapResult',
+        parent: 'dataFunction',
+        inputs: {},
+        }
+        ,
+        dataFunction: {
+            id: 'dataFunction',
+            opcode: 'datatools_executeDataFunction',
+            parent: null,
+            inputs: {
+                NAME: {
+                    block: 'setMap'
+                }
+            }
+        }
+    }; 
+    blocks.saveFunctionData({FUNCTION: 'NO FILES UPLOADED', NAME: 'fileName'}, util);
     t.same(blocks._files['fileName'], null);
+
     blocks.addDataFile('file', [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}]);
-    t.equal(blocks.saveFunctionData({FUNCTION: 'file', NAME: 'fileName'}), 'fileName', 'checking that the new name is returned');
+    t.equal(blocks.saveFunctionData({FUNCTION: 'file', NAME: 'fileName'}, util), 'fileName', 'checking that the new name is returned');
     t.same(blocks._files['file'], null);
     t.equal(blocks._files['fileName'][1].age, 36, 'checking that the data is saved properly');
     blocks.addDataFile('file', [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}]);
-    t.equal(blocks.saveFunctionData({FUNCTION: 'file', NAME: 'fileName'}), 'fileName (1)', 'checking that the new name is returned');
+    t.equal(blocks.saveFunctionData({FUNCTION: 'file', NAME: 'fileName'}, util), 'fileName (1)', 'checking that the new name is returned');
+
+    blocks.addDataFile('test', [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}]);
+    blocks._helper._generatedData[util.thread.topBlock] = {test: 'map: fileName'};
+    t.equal(blocks.saveFunctionData({FUNCTION:'test', NAME: 'testtest'}, util), 'testtest');
+    
+    
+    blocks.addDataFile('file', [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}]);
+    blocks._helper._generatedData[util.thread.topBlock] = {file: 'map: fileName'};
+    blocks._helper._savedDatasets[util.thread.topBlock] = {file: 'file'};
+    t.equal(blocks.saveFunctionData({FUNCTION:'file', NAME: 'file'}, util), 'file');
+    t.equal(blocks.saveFunctionData({FUNCTION:'file', NAME: 'filename'}, util), 'filename');
+
     t.end();
 });
 
@@ -458,6 +494,10 @@ test('execute data function', t=>{
     blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName', SAVE: true, NEWNAME: 'new map'}, util);
     t.equal(blocks._files['new map'][0].name, 'mikey');
     t.equal(blocks._hiddenFiles.includes('new map'), false);
+
+    blocks._helper._generatedData[util.thread.topBlock] = {fileName: 'map: fileName'};
+    t.equal(blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName'}, util), 'map: fileName');
+
     t.end();
 });
 
