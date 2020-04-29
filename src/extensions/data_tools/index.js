@@ -271,8 +271,6 @@ class DataTools {
                         }
                     }
                 },
-                //FOR REFERENCE: This is theoretical, and not an actual representation of
-                //               how the implementation might work. Just a proof of concept
                 {
                     opcode: 'setFilterResult',
                     text: formatMessage({
@@ -735,7 +733,7 @@ class DataTools {
             case 'map':
                 return this.map(args, util);
             case 'filter':
-                return "filter";
+                return this.filter(args, util);
             case 'reduce':
                 return "reduce";
             default:
@@ -779,13 +777,36 @@ class DataTools {
         }
     }
 
+    filter(args, util) {
+        //Initialization
+        if(typeof args.NAME === 'undefined' || args.NAME === "") return "";
+
+        //If we're trying to run in the toolbar, don't
+        if(this._helper.checkRunningInToolbar(util.thread.peekStack())) return;
+
+        //let fileName = colArr[0].substring(1);
+        let rowCount = this.getRowCount({FILENAME: args.NAME})
+
+        let topBlock = util.thread.topBlock;
+
+        this._helper.checkRegenerateFunctionBlockDepthMap(topBlock, util);
+        let id = this._helper.getID(topBlock);
+
+        let generatedMap = this._helper.getGeneratedData(topBlock, args.NAME);
+        if(generatedMap) return generatedMap;
+
+        return this._helper.executeFilterFunction(args, util, id, rowCount, 
+                                                    this.addDataFile, this.generateFileDisplayName,
+                                                    this.getRow);
+    }
+
     /**
      * SKELETON METHOD: Will be used in 'filter'
      * @param {Object} args The block's arguments
      * @param {Object} util Block Utility provided by the runtime
      */
     setFilterResult(args, util) {
-        console.log(args);
+        this._helper.setFilterResult(args.VALUE === "true", util);
     }
 
     /**

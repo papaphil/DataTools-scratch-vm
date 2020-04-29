@@ -223,7 +223,7 @@ class DataFunctionHelper {
             return;
         }
         //This should always find the parent map function block
-        let id = this._findContainingLoopBlock(util, true);
+        let id = this._findContainingLoopBlock(util, true, "map");
 
         if(typeof this._results[id] === 'undefined') {
             this._results[id] = [];
@@ -275,7 +275,6 @@ class DataFunctionHelper {
             this._currentRowValues[id] = getRow(args.NAME, this._loopCounters[id]);
 
             util.startFunctionBranch(id);
-
         }
         else {
             let name;
@@ -293,7 +292,7 @@ class DataFunctionHelper {
             }
             this._generatedData[topBlock][args.NAME] = name;
 
-            addDataFile(name, this._generateNewDataSet(this._results[id]), args.SAVE ? false : true);
+            addDataFile(name, this._generateMappedDataSet(this._results[id]));
             
             if(this._depths[topBlock] <= 0) {
                 this._deleteWorkingData(id, topBlock);
@@ -317,7 +316,7 @@ class DataFunctionHelper {
      * @param {Array} results The calculated map results to be transformed
      * @returns {Array} The new data set
      */
-    _generateNewDataSet(results) {
+    _generateMappedDataSet(results) {
         let data = [];
         let columns = {};
 
@@ -345,6 +344,102 @@ class DataFunctionHelper {
 
         return data;
     }
+//#endregion
+
+//#region Filter Functions 
+    executeFilterFunction(args, util, id, rowCount, addDataFile, generateFileDisplayName, getRow) {
+        let topBlock = util.thread.topBlock;
+
+        if(!this._errors[topBlock] && rowCount === 0) {
+            this._handleError("Must select a file.", topBlock);
+        }
+
+        if(!this._loopCounters[id]) {
+            this._loopCounters[id] = 0;
+        }
+
+        if(this._errors[topBlock]) {
+            this._deleteWorkingData(id, topBlock);
+            return "";
+        }
+
+        this._loopCounters[id]++;
+
+        if (this._loopCounters[id] <= rowCount) {
+            this._currentRowValues[id] = getRow(args.NAME, this._loopCounters[id]);
+
+            util.startFunctionBranch(id);
+
+        }
+        else {
+
+            name = "filter: " + args.NAME;
+
+            name = generateFileDisplayName(name);
+
+            if(!this._generatedData[topBlock]) {
+                this._generatedData[topBlock] = {};
+            }
+
+            this._generatedData[topBlock][args.NAME] = name;
+
+            addDataFile(name, this._generateFilteredDataSet(this._results[id]));
+            
+            if(this._depths[topBlock] <= 0) {
+                this._deleteWorkingData(id, topBlock);
+            }
+            else {
+                this._depths[topBlock]--;
+                this._deleteWorkingData(id);
+            }
+
+
+            return name;
+        }
+    }
+
+    setFilterResult(value, util) {
+        if(this._errors[util.thread.topBlock]) {
+            let id = this._findContainingLoopBlock(util, false);
+            if(!id) {
+                this._deleteWorkingData(null, util.thread.topBlock);
+            }
+            return;
+        }
+        //This should always find the parent map function block
+        let id = this._findContainingLoopBlock(util, true, "filter");
+
+        if(typeof this._results[id] === 'undefined') {
+            this._results[id] = [];
+        }
+
+        if(!this._results[id][this._loopCounters[id] - 1]) {
+            if(value) {           
+                this._results[id][this._loopCounters[id] - 1] = this._currentRowValues[id];
+            }
+            else {
+                this._results[id][this._loopCounters[id] - 1] = null;
+            }
+        }
+
+    }
+
+    _generateFilteredDataSet(results) {
+        if(!results || results.length === 0) { 
+            return [];
+        }
+
+        let data = [];
+
+        results.map(result => {
+            if(result !== null) {
+                data.push(result);
+            }
+        });
+
+        return data;
+    }
+
 //#endregion
 
 //#region PRIVATE methods
@@ -392,7 +487,7 @@ class DataFunctionHelper {
      * @param {Boolean} showError Allow the function to handle an error.
      * @returns {String} The ID of the containing loop block
      */
-    _findContainingLoopBlock(util, showError) {
+    _findContainingLoopBlock(util, showError, functionName) {
         let id = util.thread.peekStack(); 
         if(this.checkRunningInToolbar(id)) return;
 
@@ -404,6 +499,13 @@ class DataFunctionHelper {
 
         if(showError && !id) {
             this._handleError("Can't find containing loop block.", util.thread.topBlock);
+            return;
+        }
+
+        let funcInput = blocks[id].fields["FUNCTION"].value;
+
+        if(functionName && funcInput !== functionName) {
+            this._handleError("Can't use " + functionName + " block inside " + funcInput + " function.", util.thread.topBlock);
             return;
         }
 
