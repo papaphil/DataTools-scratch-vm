@@ -563,7 +563,7 @@ class DataTools {
      */
     addDataFileRow(args) {
         let { FILENAME } = args;
-        if(!FILENAME || FILENAME === NO_FILES){
+        if(!FILENAME || FILENAME === NO_FILES || !this._files[FILENAME][0]){
             return "";
         }
 
