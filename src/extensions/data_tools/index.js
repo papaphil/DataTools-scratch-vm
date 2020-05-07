@@ -367,7 +367,7 @@ class DataTools {
      */
     addDataFileColumn(args){
         let {TYPE, NAME, FILENAME} = args;
-        if(!FILENAME || FILENAME === NO_FILES)
+        if(!FILENAME || FILENAME === NO_FILES || !this._files[FILENAME])
             return '';
         if(TYPE !='text' && TYPE!='number')
             return '';
@@ -430,8 +430,15 @@ class DataTools {
         let data = {};
     
         fileNames.forEach(name =>{
-            let columns = Object.keys(this._files[name][0]);
-            data[name] = columns;
+            if(!this._hiddenFiles.includes(name)){
+                if(this._files[name][0]){
+                    let columns = Object.keys(this._files[name][0]);
+                    data[name] = columns;
+                }
+                else {
+                    data[name]= ['NO COLUMNS ADDED'];
+                }
+            }
         });
 
         return data;
