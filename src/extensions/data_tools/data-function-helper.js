@@ -442,6 +442,129 @@ class DataFunctionHelper {
 
 //#endregion
 
+//#region Reduce Functions
+executeReduceFunction(args, util, id, rowCount, addDataFile, generateFileDisplayName, getRow) {
+    let topBlock = util.thread.topBlock;
+
+    if(!this._errors[topBlock] && rowCount === 0) {
+        this._handleError("Must select a file.", topBlock);
+    }
+
+    if(!this._loopCounters[id]) {
+        this._loopCounters[id] = 0;
+    }
+
+    if(this._errors[topBlock]) {
+        this._deleteWorkingData(id, topBlock);
+        return "";
+    }
+
+    this._loopCounters[id]++;
+
+    if (this._loopCounters[id] <= rowCount) {
+        this._currentRowValues[id] = getRow(args.NAME, this._loopCounters[id]);
+
+        util.startFunctionBranch(id);
+
+    }
+    else {
+
+        name = "reduce: " + args.NAME;
+
+        name = generateFileDisplayName(name);
+
+        if(!this._generatedData[topBlock]) {
+            this._generatedData[topBlock] = {};
+        }
+
+        this._generatedData[topBlock][args.NAME] = name;
+
+        addDataFile(name, [{'VALUE': this._results[id].accumulator}]);
+        
+        if(this._depths[topBlock] <= 0) {
+            this._deleteWorkingData(id, topBlock);
+        }
+        else {
+            this._depths[topBlock]--;
+            this._deleteWorkingData(id);
+        }
+        return name;
+    }
+}
+
+updateReduceResult(args, util) {
+    if(this._errors[util.thread.topBlock]) {
+        let id = this._findContainingLoopBlock(util, false);
+        if(!id) {
+            this._deleteWorkingData(null, util.thread.topBlock);
+        }
+        return;
+    }
+    //This should always find the parent map function block
+    let id = this._findContainingLoopBlock(util, true, "reduce");
+
+    let { OPERATION, VALUE } = args;
+
+    if(typeof this._results[id] === 'undefined') {
+        this._results[id] = {};
+        this._results[id].lastUpdate = -1;
+        if (OPERATION === 'append') {
+            this._results[id].accumulator = "";
+        }
+        else if (OPERATION === '*' || OPERATION === '/'){
+            this._results[id].accumulator = 1;
+        }
+        else {
+            this._results[id].accumulator = 0;
+        }
+    }
+
+    if(this._results[id].lastUpdate === this._loopCounters[id] - 1) {
+        this._handleError("Can't update accumulator more than once per iteration.", util.thread.topBlock)
+        return;
+    }
+
+    let numVal = parseInt(VALUE);
+
+    switch(OPERATION) {
+        case '+':
+            if(numVal === NaN) {
+                this._handleError("Incorrect value type to update", util.thread.topBlock);
+                return;
+            }
+            this._results[id].accumulator += numVal;
+            break;
+        case '-':
+            if(numVal === NaN) {
+                this._handleError("Incorrect value type to update", util.thread.topBlock);
+                return;
+            }
+            this._results[id].accumulator -= numVal;
+            break;
+        case '*':
+            if(numVal === NaN) {
+                this._handleError("Incorrect value type to update", util.thread.topBlock);
+                return;
+            }
+            this._results[id].accumulator *= numVal;
+            break;
+        case '/':
+            if(numVal === NaN) {
+                this._handleError("Incorrect value type to update", util.thread.topBlock);
+                return;
+            }
+            this._results[id].accumulator /= numVal;
+            break;
+        default:
+            this._results[id].accumulator = this._results[id].accumulator.concat(VALUE);
+            break;
+    }
+
+    this._results[id].lastUpdate = this._loopCounters[id] - 1;
+}
+
+//#endregion
+
 //#region PRIVATE methods
 
     /**
