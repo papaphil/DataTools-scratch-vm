@@ -575,7 +575,7 @@ updateReduceResult(args, util) {
      * @param {String} topBlock The top block under which the error occurred
      */
     _handleError(message, topBlock) {
-        alert("Map Function: " + message);
+        alert("Data Tools: " + message);
         this._errors[topBlock] = true;
     }
 
@@ -624,14 +624,14 @@ updateReduceResult(args, util) {
             this._handleError("Can't find containing loop block.", util.thread.topBlock);
             return;
         }
+        if(id){
+            let funcInput = blocks[id].fields["FUNCTION"].value;
 
-        let funcInput = blocks[id].fields["FUNCTION"].value;
-
-        if(functionName && funcInput !== functionName) {
-            this._handleError("Can't use " + functionName + " block inside " + funcInput + " function.", util.thread.topBlock);
-            return;
+            if(functionName && funcInput !== functionName) {
+                this._handleError("Can't use " + functionName + " block inside " + funcInput + " function.", util.thread.topBlock);
+                return;
+            }
         }
-
         return id;
     }
 
