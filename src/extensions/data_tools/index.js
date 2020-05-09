@@ -612,13 +612,17 @@ class DataTools {
      */
     addDataFile(name, fileData, hidden = false) {
         //Generate a displayable file name if a duplicate is found
-        if(fileData.length < 1) return;
+        /*if(fileData.length < 1) {
+            
+            return;
+        }*/
 
         if(this._files[name]){
             name = this.generateFileDisplayName(name);
         }
 
         this._files[name] = fileData;
+        console.log('here');
 
         if(hidden) {
             this._hiddenFiles.push(name);
