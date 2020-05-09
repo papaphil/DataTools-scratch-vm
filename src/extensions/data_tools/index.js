@@ -838,9 +838,7 @@ class DataTools {
         let generatedMap = this._helper.getGeneratedData(topBlock, args.NAME);
         if(generatedMap) return generatedMap;
 
-        return this._helper.executeReduceFunction(args, util, id, rowCount, 
-                                                    this.addDataFile, this.generateFileDisplayName,
-                                                    this.getRow);
+        return this._helper.executeReduceFunction(args, util, id, rowCount, this.getRow);
     }
 
     /**
