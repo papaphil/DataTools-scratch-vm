@@ -292,7 +292,7 @@ class DataFunctionHelper {
             }
             this._generatedData[topBlock][args.NAME] = name;
 
-            addDataFile(name, this._generateMappedDataSet(this._results[id]));
+            addDataFile(name, this._generateMappedDataSet(this._results[id]), true);
             
             if(this._depths[topBlock] <= 0) {
                 this._deleteWorkingData(id, topBlock);
@@ -383,7 +383,7 @@ class DataFunctionHelper {
 
             this._generatedData[topBlock][args.NAME] = name;
 
-            addDataFile(name, this._generateFilteredDataSet(this._results[id]));
+            addDataFile(name, this._generateFilteredDataSet(this._results[id]), true);
             
             if(this._depths[topBlock] <= 0) {
                 this._deleteWorkingData(id, topBlock);
@@ -469,17 +469,18 @@ executeReduceFunction(args, util, id, rowCount, addDataFile, generateFileDisplay
     }
     else {
 
-        name = "reduce: " + args.NAME;
+        // name = "reduce: " + args.NAME;
 
-        name = generateFileDisplayName(name);
+        // name = generateFileDisplayName(name);
 
-        if(!this._generatedData[topBlock]) {
-            this._generatedData[topBlock] = {};
-        }
+        // if(!this._generatedData[topBlock]) {
+        //     this._generatedData[topBlock] = {};
+        // }
 
-        this._generatedData[topBlock][args.NAME] = name;
+        let result = this._results[id].accumulator;
+        this._generatedData[topBlock][args.NAME] = result;
 
-        addDataFile(name, [{'VALUE': this._results[id].accumulator}]);
+        // addDataFile(name, [{'VALUE': this._results[id].accumulator}], true);
         
         if(this._depths[topBlock] <= 0) {
             this._deleteWorkingData(id, topBlock);
@@ -488,7 +489,7 @@ executeReduceFunction(args, util, id, rowCount, addDataFile, generateFileDisplay
             this._depths[topBlock]--;
             this._deleteWorkingData(id);
         }
-        return name;
+        return result;
     }
 }
 
@@ -528,28 +529,28 @@ updateReduceResult(args, util) {
 
     switch(OPERATION) {
         case '+':
-            if(numVal === NaN) {
+            if(isNaN(numVal)) {
                 this._handleError("Incorrect value type to update", util.thread.topBlock);
                 return;
             }
             this._results[id].accumulator += numVal;
             break;
         case '-':
-            if(numVal === NaN) {
+            if(isNaN(numVal)) {
                 this._handleError("Incorrect value type to update", util.thread.topBlock);
                 return;
             }
             this._results[id].accumulator -= numVal;
             break;
         case '*':
-            if(numVal === NaN) {
+            if(isNaN(numVal)) {
                 this._handleError("Incorrect value type to update", util.thread.topBlock);
                 return;
             }
             this._results[id].accumulator *= numVal;
             break;
         case '/':
-            if(numVal === NaN) {
+            if(isNaN(numVal)) {
                 this._handleError("Incorrect value type to update", util.thread.topBlock);
                 return;
             }
