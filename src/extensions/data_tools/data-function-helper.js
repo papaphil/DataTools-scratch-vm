@@ -498,7 +498,10 @@ class DataFunctionHelper {
         this._loopCounters[id]++;
 
         if(this._loopCounters[id] > 1) {
-            if(!this._results[id] || this._results[id].lastUpdate !== this._loopCounters[id] - 1) {
+            if(!this._results[id]){// || this._results[id].lastUpdate !== this._loopCounters[id] - 1) {
+                console.log(this._results[id]);
+                //console.log(this._results[id].lastUpdate);
+                //console.log(this._loopCounters[id]-1);
                 this._handleError("Must update accumulator in each iteration", util.thread.topBlock)
                 return;
             }
@@ -513,7 +516,7 @@ class DataFunctionHelper {
         else {
 
             let result = this._results[id].accumulator;
-            this._generatedData[topBlock][args.NAME] = result;
+            //this._generatedData[topBlock][args.NAME] = result;
             
             if(this._depths[topBlock] <= 0) {
                 this._deleteWorkingData(id, topBlock);
