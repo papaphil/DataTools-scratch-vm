@@ -469,18 +469,8 @@ executeReduceFunction(args, util, id, rowCount, addDataFile, generateFileDisplay
     }
     else {
 
-        // name = "reduce: " + args.NAME;
-
-        // name = generateFileDisplayName(name);
-
-        // if(!this._generatedData[topBlock]) {
-        //     this._generatedData[topBlock] = {};
-        // }
-
         let result = this._results[id].accumulator;
         this._generatedData[topBlock][args.NAME] = result;
-
-        // addDataFile(name, [{'VALUE': this._results[id].accumulator}], true);
         
         if(this._depths[topBlock] <= 0) {
             this._deleteWorkingData(id, topBlock);
