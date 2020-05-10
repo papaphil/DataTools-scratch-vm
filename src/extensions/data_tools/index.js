@@ -271,8 +271,6 @@ class DataTools {
                         }
                     }
                 },
-                //FOR REFERENCE: This is theoretical, and not an actual representation of
-                //               how the implementation might work. Just a proof of concept
                 {
                     opcode: 'setFilterResult',
                     text: formatMessage({
@@ -292,14 +290,18 @@ class DataTools {
                     opcode: 'updateReduceResult',
                     text: formatMessage({
                         id: 'datatools.updateReduceResult',
-                        default: 'reduce: update accumulator by [VALUE]',
+                        default: 'reduce: update accumulator [OPERATION] [VALUE]',
                         description: 'updates the accumulator value of the reduce function'
                     }),                
                     blockType: BlockType.COMMAND,
                     arguments: {
                         VALUE: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
+                            type: ArgumentType.STRING,
+                            defaultValue: " "
+                        },
+                        OPERATION: {
+                            type: ArgumentType.STRING,
+                            menu: 'reduceOperationMenu'
                         }
                     }
                 }, 
@@ -326,6 +328,9 @@ class DataTools {
                 filterMenu: {
                     acceptReporters: true,
                     items: ['true', 'false']
+                },
+                reduceOperationMenu: {
+                    items: ['+', '-', '*', '/', 'append']
                 }
             }
         }
@@ -614,13 +619,17 @@ class DataTools {
      */
     addDataFile(name, fileData, hidden = false) {
         //Generate a displayable file name if a duplicate is found
-        if(fileData.length < 1) return;
+        /*if(fileData.length < 1) {
+            
+            return;
+        }*/
 
         if(this._files[name]){
             name = this.generateFileDisplayName(name);
         }
 
         this._files[name] = fileData;
+        console.log('here');
 
         if(hidden) {
             this._hiddenFiles.push(name);
@@ -742,9 +751,9 @@ class DataTools {
             case 'map':
                 return this.map(args, util);
             case 'filter':
-                return "filter";
+                return this.filter(args, util);
             case 'reduce':
-                return "reduce";
+                return this.reduce(args, util);
             default:
                 return null;
         }
@@ -786,13 +795,57 @@ class DataTools {
         }
     }
 
+    filter(args, util) {
+        //Initialization
+        if(typeof args.NAME === 'undefined' || args.NAME === "") return "";
+
+        //If we're trying to run in the toolbar, don't
+        if(this._helper.checkRunningInToolbar(util.thread.peekStack())) return;
+
+        //let fileName = colArr[0].substring(1);
+        let rowCount = this.getRowCount({FILENAME: args.NAME})
+
+        let topBlock = util.thread.topBlock;
+
+        this._helper.checkRegenerateFunctionBlockDepthMap(topBlock, util);
+        let id = this._helper.getID(topBlock);
+
+        let generatedMap = this._helper.getGeneratedData(topBlock, args.NAME);
+        if(generatedMap) return generatedMap;
+
+        return this._helper.executeFilterFunction(args, util, id, rowCount, 
+                                                    this.addDataFile, this.generateFileDisplayName,
+                                                    this.getRow);
+    }
+
     /**
      * SKELETON METHOD: Will be used in 'filter'
      * @param {Object} args The block's arguments
      * @param {Object} util Block Utility provided by the runtime
      */
     setFilterResult(args, util) {
-        console.log(args);
+        this._helper.setFilterResult(args.VALUE === "true", util);
+    }
+
+    reduce(args, util) {
+                //Initialization
+        if(typeof args.NAME === 'undefined' || args.NAME === "") return "";
+
+        //If we're trying to run in the toolbar, don't
+        if(this._helper.checkRunningInToolbar(util.thread.peekStack())) return;
+
+        //let fileName = colArr[0].substring(1);
+        let rowCount = this.getRowCount({FILENAME: args.NAME})
+
+        let topBlock = util.thread.topBlock;
+
+        this._helper.checkRegenerateFunctionBlockDepthMap(topBlock, util);
+        let id = this._helper.getID(topBlock);
+
+        let generatedMap = this._helper.getGeneratedData(topBlock, args.NAME);
+        if(generatedMap) return generatedMap;
+
+        return this._helper.executeReduceFunction(args, util, id, rowCount, this.getRow);
     }
 
     /**
@@ -801,7 +854,7 @@ class DataTools {
      * @param {Object} util Block Utility provided by the runtime
      */
     updateReduceResult(args, util) {
-        console.log(args);
+        this._helper.updateReduceResult(args, util);
     }
 
     /**

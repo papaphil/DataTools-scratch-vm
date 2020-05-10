@@ -223,7 +223,7 @@ class DataFunctionHelper {
             return;
         }
         //This should always find the parent map function block
-        let id = this._findContainingLoopBlock(util, true);
+        let id = this._findContainingLoopBlock(util, true, "map");
 
         if(typeof this._results[id] === 'undefined') {
             this._results[id] = [];
@@ -275,7 +275,6 @@ class DataFunctionHelper {
             this._currentRowValues[id] = getRow(args.NAME, this._loopCounters[id]);
 
             util.startFunctionBranch(id);
-
         }
         else {
             let name;
@@ -293,7 +292,7 @@ class DataFunctionHelper {
             }
             this._generatedData[topBlock][args.NAME] = name;
 
-            addDataFile(name, this._generateNewDataSet(this._results[id]), args.SAVE ? false : true);
+            addDataFile(name, this._generateMappedDataSet(this._results[id]), true);
             
             if(this._depths[topBlock] <= 0) {
                 this._deleteWorkingData(id, topBlock);
@@ -317,7 +316,7 @@ class DataFunctionHelper {
      * @param {Array} results The calculated map results to be transformed
      * @returns {Array} The new data set
      */
-    _generateNewDataSet(results) {
+    _generateMappedDataSet(results) {
         let data = [];
         let columns = {};
 
@@ -347,6 +346,268 @@ class DataFunctionHelper {
     }
 //#endregion
 
+//#region Filter Functions 
+    /**
+     * Executes the next step for a filter function block. If the function needs to iterate,
+     * this starts the next branch running. If not, the results of the function are added 
+     * to a new data set in the extension and the filter function will be complete.
+     * @param {Object} args The arguments for the function
+     * @param {Object} util Block utility object provided by the runtime
+     * @param {String} id The current function block's ID
+     * @param {int} rowCount The row count of the current data set
+     * @param {Function} addDataFile Function to add a data file to the Data Tools extension
+     * @param {Function} generateFileDisplayName Function to generate a displayable name for the generated data set
+     * @param {Function} getRow Function to get a column value at a specific row
+     * @returns {String} The name of the resulting data set
+     */
+    executeFilterFunction(args, util, id, rowCount, addDataFile, generateFileDisplayName, getRow) {
+        let topBlock = util.thread.topBlock;
+
+        if(!this._errors[topBlock] && rowCount === 0) {
+            this._handleError("Must select a file.", topBlock);
+        }
+
+        if(!this._loopCounters[id]) {
+            this._loopCounters[id] = 0;
+        }
+
+        if(this._errors[topBlock]) {
+            this._deleteWorkingData(id, topBlock);
+            return "";
+        }
+
+        this._loopCounters[id]++;
+
+        if (this._loopCounters[id] <= rowCount) {
+            this._currentRowValues[id] = getRow(args.NAME, this._loopCounters[id]);
+
+            util.startFunctionBranch(id);
+
+        }
+        else {
+
+            name = "filter: " + args.NAME;
+
+            name = generateFileDisplayName(name);
+
+            if(!this._generatedData[topBlock]) {
+                this._generatedData[topBlock] = {};
+            }
+
+            this._generatedData[topBlock][args.NAME] = name;
+
+            addDataFile(name, this._generateFilteredDataSet(this._results[id]), true);
+            
+            if(this._depths[topBlock] <= 0) {
+                this._deleteWorkingData(id, topBlock);
+            }
+            else {
+                this._depths[topBlock]--;
+                this._deleteWorkingData(id);
+            }
+
+
+            return name;
+        }
+    }
+
+    /**
+     * Sets the result of the current iteration of the filter function.
+     * If value is true, the current row will be included in the final data set and vice versa
+     * @param {Boolean} value The specified value to be returned
+     * @param {Object} util Block Utility object provided by the runtime
+     */
+    setFilterResult(value, util) {
+        if(this._errors[util.thread.topBlock]) {
+            let id = this._findContainingLoopBlock(util, false);
+            if(!id) {
+                this._deleteWorkingData(null, util.thread.topBlock);
+            }
+            return;
+        }
+        //This should always find the parent map function block
+        let id = this._findContainingLoopBlock(util, true, "filter");
+
+        if(typeof this._results[id] === 'undefined') {
+            this._results[id] = [];
+        }
+
+        if(!this._results[id][this._loopCounters[id] - 1]) {
+            if(value) {           
+                this._results[id][this._loopCounters[id] - 1] = this._currentRowValues[id];
+            }
+            else {
+                this._results[id][this._loopCounters[id] - 1] = null;
+            }
+        }
+
+    }
+
+    /**
+     * Generates a filtered data set based on a filtered array by removing
+     * any null values left over from the filter function
+     * @param {Array} results The results from the filter function
+     * @returns {Array} The filtered results
+     */
+    _generateFilteredDataSet(results) {
+        if(!results || results.length === 0) { 
+            return [];
+        }
+
+        let data = [];
+
+        results.map(result => {
+            if(result !== null) {
+                data.push(result);
+            }
+        });
+
+        return data;
+    }
+
+//#endregion
+
+//#region Reduce Functions
+    /**
+     * Executes the next step for a reduce function block. If the function needs to iterate,
+     * this starts the next branch running. If not, the results of the function are added 
+     * to a new data set in the extension and the reduce function will be complete.
+     * @param {Object} args The arguments for the function
+     * @param {Object} util Block utility object provided by the runtime
+     * @param {String} id The current function block's ID
+     * @param {int} rowCount The row count of the current data set
+     * @param {Function} getRow Function to get a column value at a specific row
+     * @returns {Number} The result of the reduce function
+     */
+    executeReduceFunction(args, util, id, rowCount, getRow) {
+        let topBlock = util.thread.topBlock;
+
+        if(!this._errors[topBlock] && rowCount === 0) {
+            this._handleError("Must select a file.", topBlock);
+        }
+
+        if(!this._loopCounters[id]) {
+            this._loopCounters[id] = 0;
+        }
+
+        if(this._errors[topBlock]) {
+            this._deleteWorkingData(id, topBlock);
+            return "";
+        }
+
+        this._loopCounters[id]++;
+
+        if(this._loopCounters[id] > 1) {
+            if(!this._results[id]){// || this._results[id].lastUpdate !== this._loopCounters[id] - 1) {
+                console.log(this._results[id]);
+                //console.log(this._results[id].lastUpdate);
+                //console.log(this._loopCounters[id]-1);
+                this._handleError("Must update accumulator in each iteration", util.thread.topBlock)
+                return;
+            }
+        }
+
+        if (this._loopCounters[id] <= rowCount) {
+            this._currentRowValues[id] = getRow(args.NAME, this._loopCounters[id]);
+
+            util.startFunctionBranch(id);
+
+        }
+        else {
+
+            let result = this._results[id].accumulator;
+            //this._generatedData[topBlock][args.NAME] = result;
+            
+            if(this._depths[topBlock] <= 0) {
+                this._deleteWorkingData(id, topBlock);
+            }
+            else {
+                this._depths[topBlock]--;
+                this._deleteWorkingData(id);
+            }
+            return result;
+        }
+    }
+
+    /**
+     * Updates the reduce function's accumulator by using a specific
+     * operator. Operations include [+, -, *, /] for integers and append for strings
+     * @param {Object} args The block arguments
+     * @param {Object} util Block Utility object provided by the runtime
+     */
+    updateReduceResult(args, util) {
+        if(this._errors[util.thread.topBlock]) {
+            let id = this._findContainingLoopBlock(util, false);
+            if(!id) {
+                this._deleteWorkingData(null, util.thread.topBlock);
+            }
+            return;
+        }
+        //This should always find the parent map function block
+        let id = this._findContainingLoopBlock(util, true, "reduce");
+
+        let { OPERATION, VALUE } = args;
+
+        if(typeof this._results[id] === 'undefined') {
+            this._results[id] = {};
+            this._results[id].lastUpdate = -1;
+            if (OPERATION === 'append') {
+                this._results[id].accumulator = "";
+            }
+            else if (OPERATION === '*' || OPERATION === '/'){
+                this._results[id].accumulator = 1;
+            }
+            else {
+                this._results[id].accumulator = 0;
+            }
+        }
+
+        if(this._results[id].lastUpdate === this._loopCounters[id] - 1) {
+            this._handleError("Can't update accumulator more than once per iteration.", util.thread.topBlock)
+            return;
+        }
+
+        let numVal = parseInt(VALUE);
+
+        switch(OPERATION) {
+            case '+':
+                if(isNaN(numVal)) {
+                    this._handleError("Incorrect value type to update", util.thread.topBlock);
+                    return;
+                }
+                this._results[id].accumulator += numVal;
+                break;
+            case '-':
+                if(isNaN(numVal)) {
+                    this._handleError("Incorrect value type to update", util.thread.topBlock);
+                    return;
+                }
+                this._results[id].accumulator -= numVal;
+                break;
+            case '*':
+                if(isNaN(numVal)) {
+                    this._handleError("Incorrect value type to update", util.thread.topBlock);
+                    return;
+                }
+                this._results[id].accumulator *= numVal;
+                break;
+            case '/':
+                if(isNaN(numVal)) {
+                    this._handleError("Incorrect value type to update", util.thread.topBlock);
+                    return;
+                }
+                this._results[id].accumulator /= numVal;
+                break;
+            default:
+                this._results[id].accumulator = this._results[id].accumulator.concat(VALUE);
+                break;
+        }
+
+        this._results[id].lastUpdate = this._loopCounters[id] - 1;
+    }
+
+//#endregion
+
 //#region PRIVATE methods
 
     /**
@@ -357,7 +618,7 @@ class DataFunctionHelper {
      * @param {String} topBlock The top block under which the error occurred
      */
     _handleError(message, topBlock) {
-        alert("Map Function: " + message);
+        alert("Data Tools: " + message);
         this._errors[topBlock] = true;
     }
 
@@ -392,7 +653,7 @@ class DataFunctionHelper {
      * @param {Boolean} showError Allow the function to handle an error.
      * @returns {String} The ID of the containing loop block
      */
-    _findContainingLoopBlock(util, showError) {
+    _findContainingLoopBlock(util, showError, functionName) {
         let id = util.thread.peekStack(); 
         if(this.checkRunningInToolbar(id)) return;
 
@@ -406,7 +667,14 @@ class DataFunctionHelper {
             this._handleError("Can't find containing loop block.", util.thread.topBlock);
             return;
         }
+        if(id){
+            let funcInput = blocks[id].fields["FUNCTION"].value;
 
+            if(functionName && funcInput !== functionName) {
+                this._handleError("Can't use " + functionName + " block inside " + funcInput + " function.", util.thread.topBlock);
+                return;
+            }
+        }
         return id;
     }
 
