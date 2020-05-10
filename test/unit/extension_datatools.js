@@ -59,11 +59,16 @@ test('find containing loop block', t => {
         dataFunction: {
             id: 'dataFunction',
             opcode: 'datatools_executeDataFunction',
-            parent: null
+            parent: null,
+            fields: {
+                FUNCTION: {
+                    value: 'map'
+                }
+            }
         }
     }; 
-    t.equal(blocks._findContainingLoopBlock(util, false), "dataFunction");
-    t.equal(blocks._findContainingLoopBlock(util, true), "dataFunction");
+    t.equal(blocks._findContainingLoopBlock(util, false, "map"), "dataFunction");
+    t.equal(blocks._findContainingLoopBlock(util, true, "map"), "dataFunction");
 
     //case: a map block with another map block as the input file
     util.target.blocks._blocks = {setMap: {
@@ -75,15 +80,25 @@ test('find containing loop block', t => {
         dataFunction: {
             id: 'dataFunction',
             opcode: 'datatools_executeDataFunction',
-            parent: 'dataFunction2'
+            parent: 'dataFunction2',
+            fields: {
+                FUNCTION: {
+                    value: 'map'
+                }
+            }
         },
         dataFunction2: {
             id: 'dataFunction2',
             opcode: 'datatools_executeDataFunction',
-            parent: null
+            parent: null,
+            fields: {
+                FUNCTION: {
+                    value: 'map'
+                }
+            }
         }
     }; 
-    t.equal(blocks._findContainingLoopBlock(util, false), "dataFunction");
+    t.equal(blocks._findContainingLoopBlock(util, false, 'map'), "dataFunction");
     t.end();
 });
 
@@ -200,7 +215,7 @@ test('creating depth map for data function helper', t=>{
                 parent: null,
                 inputs: {
                     NAME: {
-                        block: 'dataFunction2'//setting the input to mock the situation of one map block being used as an input as another
+                        block: 'dataFunction2',//setting the input to mock the situation of one map block being used as an input as another
                     }
                 }
             },
@@ -234,21 +249,6 @@ test('handle error', t =>{
     t.end();
 });
 
-//Testing _generateNewDataSet from data-funciton-helper.js
-test('generate new data set', t=> {
-    let blocks = new dataHelper();
-    let out = blocks._generateNewDataSet([{age: 15}, {age: 200}, {age: undefined}, {age: 0}]);//system should be able to handle an undefined value and 0
-    t.equal(out[0].age, 15, 'checking that number got assigned properly');
-    t.equal(out[2].age, 0, 'checking that the undefined value got set to 0');
-    t.equal(out[3].age, 0, 'checking that 0 got set properly');
-
-    out = blocks._generateNewDataSet([{name: 'phillip'}, {name: undefined}, {name: null}, {name: ''}]);//system should be able to handle undefined, null, and empty strings
-    t.equal(out[0].name, 'phillip', 'checking that name got assigned properly');
-    t.equal(out[1].name, '', 'checking that the undefined value got set to empty string');
-    t.equal(out[2].name, '', 'checking that null value got set properly');
-    t.equal(out[3].name, '', 'checking that an empty string value stays the same');
-    t.end();
-});
 
 //Testing setMapResult 
 test('setting the map result', t=>{
@@ -268,7 +268,12 @@ test('setting the map result', t=>{
         dataFunction: {
             id: 'dataFunction',
             opcode: 'datatools_executeDataFunction',
-            parent: null
+            parent: null,
+            fields: {
+                FUNCTION: {
+                    value: 'map'
+                }
+            }
         }
     };
     //setting the error so the sytem will fail
@@ -288,7 +293,12 @@ test('setting the map result', t=>{
         dataFunction: {
             id: 'dataFunction',
             opcode: 'datatools_executeDataFunction',
-            parent: null
+            parent: null,
+            fields: {
+                FUNCTION: {
+                    value: 'map'
+                }
+            }
         }
     };
     blocks._errors[util.thread.topBlock] = true;//another error situation, checking that it fails but does not delete all progress
@@ -328,11 +338,16 @@ test('delete working data', t=>{
         dataFunction: {
             id: 'dataFunction',
             opcode: 'datatools_executeDataFunction',
-            parent: null
+            parent: null,
+            fields: {
+                FUNCTION: {
+                    value: 'map'
+                }
+            }
         }
     };
     //general starting data to ensure it deletes it all properly
-    let id = blocks._findContainingLoopBlock(util);
+    let id = blocks._findContainingLoopBlock(util, "map");
     blocks._loopCounters[id] = 1;
     blocks._currentRowValues[id] = 15;
     blocks._results[id]  = [{'age': 15}];
@@ -384,6 +399,11 @@ test('get current row', t=>{
             inputs: {
                 NAME: {
                     block: 'setMap'
+                }
+            },
+            fields: {
+                FUNCTION: {
+                    value: 'map'
                 }
             }
         }
@@ -469,6 +489,9 @@ test('execute data function', t=>{
         opcode: 'datatools_setMapResult',
         parent: 'dataFunction',
         inputs: {},
+        fields: {
+            FUNCTION: "map"
+        }
         }
         ,
         dataFunction: {
@@ -478,6 +501,11 @@ test('execute data function', t=>{
             inputs: {
                 NAME: {
                     block: 'setMap'
+                }
+            },
+            fields: {
+                FUNCTION: {
+                    value: 'map'
                 }
             }
         }
@@ -525,8 +553,7 @@ test('execute data function', t=>{
     blocks.setMapResult({COLUMN: 'name', VALUE: 'mikey'}, util);
     blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName', SAVE: true, NEWNAME: 'new map'}, util);
     t.equal(blocks._files['new map'][0].name, 'mikey', 'checking that the data is properly stored');
-    t.equal(blocks._hiddenFiles.includes('new map'), false, 'checking that if the SAVE parameter is true then the file does not get added to the hidden files');
-
+  
     //if there is already generatedData for a file we just return said data
     blocks._helper._generatedData[util.thread.topBlock] = {fileName: 'map: fileName'};
     t.equal(blocks.executeDataFunction({FUNCTION: 'map', NAME: 'fileName'}, util), 'map: fileName', 'checking if there is already generated data we return said data instead of re generating it');
@@ -549,10 +576,10 @@ test('Adding Data File to extension', t => {
     t.equal(blocks.generateDisplayedBlocks()[0].opcode, 'file_fileName', "file block for the new file created properly");
 
     blocks.addDataFile('file', []);//adding a data file with no contents
-    t.notEqual(blocks.getFileNames()[1], 'file', "the file name should not have been added because there was no data");
+    t.equal(blocks.getFileNames()[1], 'file', "the file name should have been added with no data");
 
     blocks.addDataFile(fileName, [ {name:'mikey', age:25 }, {name:'joe', age:36}, {name:'steve', age:85}]);
-    t.equal(blocks.getFileNames()[1], 'fileName (1)', "File added with same name, name should be updated to fileName (1)" );
+    t.equal(blocks.getFileNames()[2], 'fileName (1)', "File added with same name, name should be updated to fileName (1)" );
     t.end();
 });
 
